@@ -95,7 +95,7 @@ smart-data run my_pipeline
 ## CLI reference
 
 ```
-smart-data run PIPELINE [--env ENV] [--dry-run]
+smart-data run PIPELINE [--env ENV] [--env-file PATH] [-v ...] [--dry-run]
 smart-data monitor [--refresh SECONDS]
 smart-data scaffold PROJECT_NAME [--output PATH]
 ```

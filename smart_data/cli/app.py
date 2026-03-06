@@ -18,6 +18,7 @@ import time
 import typer
 
 from smart_data.cli.scaffold import scaffold
+from smart_data.core.context import EnvironmentConfig, ExecutionSessionContext
 
 app = typer.Typer(
     name="smart-data",
@@ -39,6 +40,18 @@ def _emit(payload: dict, *, error: bool = False) -> None:
 def run(
     pipeline: str = typer.Argument(..., help="Pipeline name / identifier to run."),
     env: str = typer.Option("dev", "--env", "-e", help="Target execution environment."),
+    env_file: str = typer.Option(
+        ".env",
+        "--env-file",
+        help="Environment file used to build the execution context.",
+    ),
+    verbose: int = typer.Option(
+        0,
+        "--verbose",
+        "-v",
+        count=True,
+        help="Increase CLI context verbosity level.",
+    ),
     dry_run: bool = typer.Option(
         False,
         "--dry-run",
@@ -56,12 +69,18 @@ def run(
     smart-data run pipeline_x --env staging --dry-run
     """
     started_at = time.time()
+    context = ExecutionSessionContext(
+        environment=EnvironmentConfig.from_env_file(target=env, env_file=env_file),
+        dry_run=dry_run,
+        verbosity=verbose,
+    )
     _emit(
         {
             "event": "pipeline.started",
             "pipeline": pipeline,
             "env": env,
             "dry_run": dry_run,
+            "session": context.summary(),
         }
     )
 
@@ -73,13 +92,18 @@ def run(
         if pipeline_cls is None:
             raise LookupError(f"Pipeline '{pipeline}' not found in registry.")
 
-        instance = pipeline_cls()
+        try:
+            instance = pipeline_cls(context=context)
+        except TypeError:
+            instance = pipeline_cls()
+            if hasattr(instance, "context"):
+                instance.context = context
         instance.compile_dag()
 
         if not dry_run:
             instance.run()
 
-        elapsed = round(time.time() - started_at, 3)
+        elapsed = context.elapsed_seconds
         _emit(
             {
                 "event": "pipeline.completed",
@@ -87,6 +111,7 @@ def run(
                 "env": env,
                 "dry_run": dry_run,
                 "elapsed_seconds": elapsed,
+                "session": context.summary(),
             }
         )
         raise SystemExit(0)

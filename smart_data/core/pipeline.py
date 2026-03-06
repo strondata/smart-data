@@ -5,7 +5,8 @@ from dataclasses import dataclass
 
 from pydantic.dataclasses import dataclass as pydantic_dataclass
 
-from smart_data.core.step import BaseStep, IStep
+from smart_data.core.context import ExecutionSessionContext
+from smart_data.core.step import IStep
 
 
 @dataclass
@@ -39,3 +40,5 @@ class BasePipeline(IPipeline):
     implement the :meth:`register_step`, :meth:`compile_dag` and
     :meth:`run` abstract methods inherited from :class:`IPipeline`.
     """
+
+    context: ExecutionSessionContext | None = None

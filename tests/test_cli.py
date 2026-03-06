@@ -4,15 +4,14 @@ from __future__ import annotations
 
 import json
 
-import pytest
 from pydantic.dataclasses import dataclass as pydantic_dataclass
 from typer.testing import CliRunner
 
 from smart_data.cli.app import app
+from smart_data.core.dataset import BaseDataset
+from smart_data.core.pipeline import BasePipeline
+from smart_data.core.step import BaseStep
 from smart_data.plugins import registry
-from smart_data.core.pipeline import BasePipeline, IPipeline
-from smart_data.core.step import BaseStep, IStep
-from smart_data.core.dataset import BaseDataset, IDataset
 
 
 runner = CliRunner()
@@ -43,8 +42,11 @@ class _MockStep(BaseStep):
 
 @pydantic_dataclass
 class _MockPipeline(BasePipeline):
+    last_context = None
+
     def __post_init__(self) -> None:
         self._compiled = False
+        _MockPipeline.last_context = self.context
 
     def register_step(self, step):
         pass
@@ -75,7 +77,7 @@ class TestRunCommand:
         result = runner.invoke(app, ["run", "mock_pipeline"])
         assert result.exit_code == 0
         # stdout should contain two JSON events
-        lines = [l for l in result.output.strip().splitlines() if l.strip()]
+        lines = [line for line in result.output.strip().splitlines() if line.strip()]
         assert len(lines) >= 2
         started = json.loads(lines[0])
         completed = json.loads(lines[-1])
@@ -85,16 +87,42 @@ class TestRunCommand:
     def test_run_with_env_option(self):
         result = runner.invoke(app, ["run", "mock_pipeline", "--env", "prod"])
         assert result.exit_code == 0
-        lines = [l for l in result.output.strip().splitlines() if l.strip()]
+        lines = [line for line in result.output.strip().splitlines() if line.strip()]
         started = json.loads(lines[0])
         assert started["env"] == "prod"
 
     def test_run_dry_run_flag(self):
         result = runner.invoke(app, ["run", "mock_pipeline", "--dry-run"])
         assert result.exit_code == 0
-        lines = [l for l in result.output.strip().splitlines() if l.strip()]
+        lines = [line for line in result.output.strip().splitlines() if line.strip()]
         started = json.loads(lines[0])
         assert started["dry_run"] is True
+
+    def test_run_builds_context_from_env_file(self, tmp_path):
+        env_file = tmp_path / ".env"
+        env_file.write_text("API_TOKEN=abc123\n# ignore line\n", encoding="utf-8")
+
+        result = runner.invoke(
+            app,
+            [
+                "run",
+                "mock_pipeline",
+                "--env",
+                "prod",
+                "--env-file",
+                str(env_file),
+                "-v",
+            ],
+        )
+
+        assert result.exit_code == 0
+        lines = [line for line in result.output.strip().splitlines() if line.strip()]
+        started = json.loads(lines[0])
+        assert started["session"]["target_env"] == "prod"
+        assert started["session"]["env_vars_loaded"] == 1
+        assert started["session"]["verbosity"] == 1
+        assert _MockPipeline.last_context is not None
+        assert _MockPipeline.last_context.environment.variables["API_TOKEN"] == "abc123"
 
     def test_run_unknown_pipeline_exits_1(self):
         result = runner.invoke(app, ["run", "nonexistent_pipeline"])
@@ -103,7 +131,7 @@ class TestRunCommand:
     def test_run_unknown_pipeline_emits_error_json(self):
         result = runner.invoke(app, ["run", "nonexistent_pipeline"])
         # stderr and stdout are merged by the test runner
-        lines = [l for l in result.output.strip().splitlines() if l.strip()]
+        lines = [line for line in result.output.strip().splitlines() if line.strip()]
         assert len(lines) >= 1
         error_event = json.loads(lines[-1])
         assert error_event["event"] == "pipeline.error"
