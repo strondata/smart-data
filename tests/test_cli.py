@@ -42,11 +42,8 @@ class _MockStep(BaseStep):
 
 @pydantic_dataclass
 class _MockPipeline(BasePipeline):
-    last_context = None
-
     def __post_init__(self) -> None:
         self._compiled = False
-        _MockPipeline.last_context = self.context
 
     def register_step(self, step):
         pass
@@ -99,6 +96,24 @@ class TestRunCommand:
         assert started["dry_run"] is True
 
     def test_run_builds_context_from_env_file(self, tmp_path):
+        captured: dict[str, object] = {}
+
+        @pydantic_dataclass
+        class _ContextAwarePipeline(BasePipeline):
+            def __post_init__(self) -> None:
+                self._compiled = False
+                captured["context"] = self.context
+
+            def register_step(self, step):
+                pass
+
+            def compile_dag(self):
+                self._compiled = True
+
+            def run(self):
+                pass
+
+        registry.register("context_pipeline", _ContextAwarePipeline)
         env_file = tmp_path / ".env"
         env_file.write_text("API_TOKEN=abc123\n# ignore line\n", encoding="utf-8")
 
@@ -106,7 +121,7 @@ class TestRunCommand:
             app,
             [
                 "run",
-                "mock_pipeline",
+                "context_pipeline",
                 "--env",
                 "prod",
                 "--env-file",
@@ -121,8 +136,10 @@ class TestRunCommand:
         assert started["session"]["target_env"] == "prod"
         assert started["session"]["env_vars_loaded"] == 1
         assert started["session"]["verbosity"] == 1
-        assert _MockPipeline.last_context is not None
-        assert _MockPipeline.last_context.environment.variables["API_TOKEN"] == "abc123"
+        assert "context" in captured
+        context = captured["context"]
+        assert context is not None
+        assert context.environment.variables["API_TOKEN"] == "abc123"
 
     def test_run_unknown_pipeline_exits_1(self):
         result = runner.invoke(app, ["run", "nonexistent_pipeline"])

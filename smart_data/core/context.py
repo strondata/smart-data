@@ -31,7 +31,14 @@ class EnvironmentConfig:
                 key = key.strip()
                 if not key:
                     continue
-                variables[key] = value.strip().strip("\"'")
+                clean_value = value.strip()
+                if (
+                    len(clean_value) >= 2
+                    and clean_value[0] in {"'", '"'}
+                    and clean_value[-1] == clean_value[0]
+                ):
+                    clean_value = clean_value[1:-1]
+                variables[key] = clean_value
         return cls(target=target, env_file=env_file, variables=variables)
 
 

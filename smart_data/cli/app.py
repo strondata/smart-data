@@ -12,8 +12,8 @@ Design goals
 from __future__ import annotations
 
 import json
+import inspect
 import sys
-import time
 
 import typer
 
@@ -68,7 +68,6 @@ def run(
     smart-data run pipeline_x --env prod
     smart-data run pipeline_x --env staging --dry-run
     """
-    started_at = time.time()
     context = ExecutionSessionContext(
         environment=EnvironmentConfig.from_env_file(target=env, env_file=env_file),
         dry_run=dry_run,
@@ -93,11 +92,14 @@ def run(
             raise LookupError(f"Pipeline '{pipeline}' not found in registry.")
 
         try:
-            instance = pipeline_cls(context=context)
-        except TypeError:
-            instance = pipeline_cls()
-            if hasattr(instance, "context"):
-                instance.context = context
+            pipeline_signature = inspect.signature(pipeline_cls)
+            accepts_context = "context" in pipeline_signature.parameters
+        except (TypeError, ValueError):
+            accepts_context = False
+
+        instance = pipeline_cls(context=context) if accepts_context else pipeline_cls()
+        if not accepts_context and hasattr(instance, "context"):
+            instance.context = context
         instance.compile_dag()
 
         if not dry_run:
@@ -117,7 +119,7 @@ def run(
         raise SystemExit(0)
 
     except LookupError as exc:
-        elapsed = round(time.time() - started_at, 3)
+        elapsed = context.elapsed_seconds
         _emit(
             {
                 "event": "pipeline.error",
@@ -131,7 +133,7 @@ def run(
         raise SystemExit(1) from exc
 
     except Exception as exc:  # noqa: BLE001
-        elapsed = round(time.time() - started_at, 3)
+        elapsed = context.elapsed_seconds
         _emit(
             {
                 "event": "pipeline.error",

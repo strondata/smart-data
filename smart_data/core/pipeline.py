@@ -41,4 +41,6 @@ class BasePipeline(IPipeline):
     :meth:`run` abstract methods inherited from :class:`IPipeline`.
     """
 
+    # Preferred context injection path: instantiate pipeline classes with
+    # ``context=ExecutionSessionContext(...)``.
     context: ExecutionSessionContext | None = None
