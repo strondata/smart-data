@@ -1,10 +1,11 @@
 import inspect
-from typing import Any, Callable, Dict, Optional, Type, Union
+from collections.abc import Callable
+from typing import Any
 
-from aptdata.core.registry import ComponentRegistry
-from aptdata.core.system import BaseComponent
 from aptdata.core.context import IContext
 from aptdata.core.dataset import IDataset
+from aptdata.core.registry import ComponentRegistry
+from aptdata.core.system import BaseComponent
 
 
 class FunctionComponentAdapter(BaseComponent):
@@ -49,12 +50,12 @@ class FunctionComponentAdapter(BaseComponent):
         return self._func(**kwargs)
 
 
-def component(name: Optional[str] = None) -> Callable:
+def component(name: str | None = None) -> Callable:
     """Decorator to register a component class or a function in the global ComponentRegistry.
 
     If used on a function, it wraps it in an adapter that implements BaseComponent.
     """
-    def decorator(target: Union[Type[BaseComponent], Callable]) -> Union[Type[BaseComponent], Callable]:
+    def decorator(target: type[BaseComponent] | Callable) -> type[BaseComponent] | Callable:
         # Determine registry name
         registry_name = name or target.__name__
 
@@ -76,7 +77,7 @@ def component(name: Optional[str] = None) -> Callable:
 
     return decorator
 
-def pandas_component(name: Optional[str] = None) -> Callable:
+def pandas_component(name: str | None = None) -> Callable:
     """Decorator to register a pandas-specific function in the global ComponentRegistry.
 
     The decorated function should take a pd.DataFrame and optionally an IContext,

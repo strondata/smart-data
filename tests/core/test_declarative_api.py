@@ -1,11 +1,12 @@
-import pytest
 import pandas as pd
+import pytest
 
-from aptdata.core.registry import ComponentRegistry
+from aptdata.core.context import ExecutionContext, IContext
 from aptdata.core.decorators import component, pandas_component
+from aptdata.core.registry import ComponentRegistry
 from aptdata.core.system import BaseComponent
 from aptdata.plugins.dataset import InMemoryDataset
-from aptdata.core.context import IContext, ExecutionContext
+
 
 @pytest.fixture(autouse=True)
 def clear_registry():
@@ -77,9 +78,10 @@ def test_pandas_component_decorator():
     assert out_df["new_col"].tolist() == [1, 1]
 
 
-import os
 import yaml
+
 from aptdata.core.yaml_builder import YamlSystemBuilder
+
 
 def test_yaml_builder(tmp_path):
     # Create dummy component module
