@@ -1,22 +1,44 @@
-import pandas as pd
+from typing import TYPE_CHECKING, Any
 
-def clean_match_data_logic(df: pd.DataFrame) -> pd.DataFrame:
-    """Pure pandas logic for Silver Layer: Clean and validate data."""
-    # Drop duplicates, nulls on crucial fields, fillna etc.
-    df_cleaned = df.dropna(subset=['match_id']).copy()
+if TYPE_CHECKING:
+    import pandas as pd
 
-    # Handle string 'null' explicitly in the mock data, then fillna and cast
-    if 'home_goals' in df_cleaned.columns:
-        df_cleaned['home_goals'] = pd.to_numeric(df_cleaned['home_goals'], errors='coerce').fillna(0).astype(int)
-    if 'away_goals' in df_cleaned.columns:
-        df_cleaned['away_goals'] = pd.to_numeric(df_cleaned['away_goals'], errors='coerce').fillna(0).astype(int)
-
-    columns = [col for col in ['match_id', 'home_team', 'away_team', 'home_goals', 'away_goals', 'date'] if col in df_cleaned.columns]
-    return df_cleaned[columns]
+from domain.models import SilverMatchModel
 
 
-def aggregate_player_stats_logic(df: pd.DataFrame) -> pd.DataFrame:
+def clean_match_data_logic(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Pure python logic for Silver Layer: Clean and validate data natively."""
+    cleaned = []
+    seen_ids = set()
+
+    for row in records:
+        match_id = row.get('match_id')
+
+        # Drop nulls on crucial fields
+        if not match_id or match_id == "null":
+            continue
+
+        # Drop duplicates
+        if match_id in seen_ids:
+            continue
+
+        seen_ids.add(match_id)
+
+        # Validate and coerce using Pydantic (this casts 'null' to 0)
+        try:
+            validated = SilverMatchModel.model_validate(row)
+            cleaned.append(validated.model_dump())
+        except Exception:
+            # If a record completely fails validation, we skip it
+            continue
+
+    return cleaned
+
+
+def aggregate_player_stats_logic(df: "pd.DataFrame") -> "pd.DataFrame":
     """Pure pandas logic for Gold Layer: Aggregates total goals by team."""
+    import pandas as pd
+
     home_stats = df.groupby('home_team').agg(
         total_goals_scored=('home_goals', 'sum'),
         matches_played=('match_id', 'count')

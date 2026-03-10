@@ -1,7 +1,6 @@
 import os
 import sys
 
-import pandas as pd
 import pytest
 
 from aptdata.core.dataset import DataContractError
@@ -11,7 +10,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from components.soccer_components import CleanMatchDataComponent
 from flows.soccer_flows import SilverFlow
-from system import SoccerMedallionSystem
+from system_oo import SoccerMedallionSystem
 
 
 def test_system_dependency_injection():
@@ -31,27 +30,21 @@ def test_pydantic_validation_fail_fast(monkeypatch):
 
     # Cria um payload "sujo" e "incorreto", que simula uma saida de um componente
     # ou um dataframe que não segue o contrato
-    invalid_data = pd.DataFrame([
+    invalid_data = [
         # Missing home_goals and away_goals which are required ints in SilverMatchModel
         {"match_id": "123", "home_team": "Team A", "away_team": "Team B", "date": "2023-10-01"}
-    ])
+    ]
     ds = InMemoryDataset(uri="memory://test")
-    ds.write(invalid_data.to_dict(orient="records"))
+    ds.write(invalid_data)
 
-    # O component de limpeza passaria batido nisso (ja q fillna faria zero), mas para forçar erro de contrato,
-    # vamos injetar um erro manipulando o dataframe que o Clean component recebe e forçando ele
-    # a devolver algo faltante
+    # Let's mock `execute` to return an invalid dataset intentionally
+    def bad_execute(self_obj, inputs):
+        bad_ds = InMemoryDataset(uri="memory://bad")
+        bad_ds.write([{"match_id": "123", "home_team": "Team A"}]) # Missing away_team, goals, date
+        return [bad_ds]
 
-    # PydanticDataset is wrapped around the execution.
-    # CleanMatchDataComponent cleans and adds missing goals.
-    # Let's mock `transform` to return an invalid dataframe intentionally
-    component = flow._nodes["CleanMatchDataComponent"].component
-
-    def bad_transform(self_obj, df, context):
-        return pd.DataFrame([{"match_id": "123", "home_team": "Team A"}]) # Missing away_team, goals, date
-
-    # Monkeypatch the specific class's transform method
-    monkeypatch.setattr(CleanMatchDataComponent, "transform", bad_transform)
+    # Monkeypatch the specific class's execute method
+    monkeypatch.setattr(CleanMatchDataComponent, "execute", bad_execute)
 
     with pytest.raises(DataContractError):
         flow.run([ds])
@@ -62,12 +55,13 @@ def test_full_pipeline_with_mocked_io(monkeypatch):
     from components.soccer_components import IngestMatchDataComponent
 
     def mocked_execute(self, inputs):
-        df = pd.DataFrame([
+        # Even though we refactored clean logic to drop null match_ids, it handles normal cases too
+        df = [
             {"match_id": "1", "home_team": "A", "away_team": "B", "home_goals": 2, "away_goals": 1, "date": "2023-01-01"},
             {"match_id": "2", "home_team": "C", "away_team": "A", "home_goals": 0, "away_goals": 3, "date": "2023-01-02"},
-        ])
+        ]
         ds = InMemoryDataset(uri="memory://test")
-        ds.write(df.to_dict(orient="records"))
+        ds.write(df)
         return [ds]
 
     monkeypatch.setattr(IngestMatchDataComponent, "execute", mocked_execute)
