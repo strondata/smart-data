@@ -1,54 +1,51 @@
-import pandas as pd
 from pathlib import Path
 
-from aptdata.core.decorators import component, pandas_component
+import pandas as pd
+from domain.transformations import aggregate_player_stats_logic, clean_match_data_logic
+
 from aptdata.core.context import IContext
 from aptdata.core.dataset import IDataset
+from aptdata.core.decorators import component, pandas_component
+from aptdata.plugins.dataset import InMemoryDataset
 from aptdata.plugins.local_fs import CSVReader
 
-MOCK_DATA_PATH = Path(__file__).parent / "data" / "raw" / "matches_mock.csv"
+DEFAULT_MOCK_DATA_PATH = Path(__file__).parent / "data" / "raw" / "matches_mock.csv"
 
 @component("ingest_match_data")
-def ingest_match_data(inputs: list[IDataset], context: IContext) -> list[IDataset]:
+def ingest_match_data(inputs: list[IDataset], context: IContext, file_path: str | None = None) -> list[IDataset]:
     """Bronze Layer: Ingest raw data."""
     context.logger.info("Ingesting raw data from CSV (Bronze)")
-    reader = CSVReader(str(MOCK_DATA_PATH))
+    path_to_read = file_path or str(DEFAULT_MOCK_DATA_PATH)
+    reader = CSVReader(path_to_read)
     out_ds = reader.read()
     return [out_ds]
 
 
-@pandas_component("clean_match_data")
-def clean_match_data(df: pd.DataFrame, context: IContext) -> pd.DataFrame:
+@component("clean_match_data")
+def clean_match_data(inputs: list[IDataset], context: IContext) -> list[IDataset]:
     """Silver Layer: Clean and validate data."""
-    context.logger.info("Starting cleaning in Silver layer")
+    context.logger.info("Starting cleaning in Silver layer using Pydantic")
 
-    # Pure pandas logic: drop duplicates, nulls on crucial fields, fillna etc.
-    df_cleaned = df.dropna(subset=['match_id']).copy()
+    all_records = []
+    for ds in inputs:
+        data = ds.read()
+        if isinstance(data, list):
+            all_records.extend(data)
+        elif type(data).__name__ == "DataFrame":
+            all_records.extend(data.to_dict(orient="records"))
+        elif data is not None:
+            all_records.append(data)
 
-    if 'home_goals' in df_cleaned.columns:
-        df_cleaned['home_goals'] = df_cleaned['home_goals'].fillna(0).astype(int)
-    if 'away_goals' in df_cleaned.columns:
-        df_cleaned['away_goals'] = df_cleaned['away_goals'].fillna(0).astype(int)
+    cleaned_records = clean_match_data_logic(all_records)
 
-    columns = [col for col in ['match_id', 'home_team', 'away_team', 'home_goals', 'away_goals', 'date'] if col in df_cleaned.columns]
-    return df_cleaned[columns]
+    # Needs to match the original signature return type
+    out_ds = InMemoryDataset(uri="memory://clean_match_data_out")
+    out_ds.write(cleaned_records)
+    return [out_ds]
 
 
 @pandas_component("aggregate_player_stats")
 def aggregate_player_stats(df: pd.DataFrame, context: IContext) -> pd.DataFrame:
     """Gold Layer: Aggregates total goals by team."""
     context.logger.info("Starting aggregation in Gold layer")
-
-    home_stats = df.groupby('home_team').agg(
-        total_goals_scored=('home_goals', 'sum'),
-        matches_played=('match_id', 'count')
-    ).reset_index().rename(columns={'home_team': 'team'})
-
-    away_stats = df.groupby('away_team').agg(
-        total_goals_scored=('away_goals', 'sum'),
-        matches_played=('match_id', 'count')
-    ).reset_index().rename(columns={'away_team': 'team'})
-
-    combined = pd.concat([home_stats, away_stats], ignore_index=True)
-    gold_stats = combined.groupby('team').sum().reset_index()
-    return gold_stats
+    return aggregate_player_stats_logic(df)

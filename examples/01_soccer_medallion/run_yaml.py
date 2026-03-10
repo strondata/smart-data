@@ -1,13 +1,13 @@
 #!/usr/bin/env python
-import sys
 import os
+import sys
 
 # Add the root directory to sys.path to resolve 'domain' correctly
 current_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, current_dir)
 
 from aptdata.core.yaml_builder import YamlSystemBuilder
-from aptdata.core.registry import ComponentRegistry
+
 
 def main():
     print("Building system from YAML...")
