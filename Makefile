@@ -1,4 +1,4 @@
-.PHONY: install test test-cov test-unit test-integration test-e2e lint clean docs docs-serve
+.PHONY: install test test-cov test-unit test-integration test-e2e test-cli lint clean docs docs-serve
 
 install:
 	poetry install
@@ -17,6 +17,9 @@ test-integration:
 
 test-e2e:
 	poetry run pytest tests/test_e2e.py -v -m e2e
+
+test-cli:
+	./test_cli.sh
 
 lint:
 	poetry run ruff check aptdata/ tests/

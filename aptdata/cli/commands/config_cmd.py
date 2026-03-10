@@ -26,15 +26,15 @@ system:
       components:
         - component_id: extract
           metadata:
-            kind: EXTRACT
+            kind: extract
             description: Extract raw data
         - component_id: transform
           metadata:
-            kind: TRANSFORM
+            kind: transform
             description: Transform data
         - component_id: load
           metadata:
-            kind: LOAD
+            kind: load
             description: Load to destination
       edges:
         - source_id: extract

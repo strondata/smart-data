@@ -613,7 +613,7 @@ def _scaffold_data_quality_test(project_name: str, project_dir: Path) -> None:
 _JOB_WHEEL_PYPROJECT = """\
 [build-system]
 requires = ["setuptools>=68"]
-build-backend = "setuptools.backends.legacy:build"
+build-backend = "setuptools.build_meta"
 
 [project]
 name = "{project_name}"
