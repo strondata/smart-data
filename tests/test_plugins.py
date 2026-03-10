@@ -12,6 +12,7 @@ Covers:
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock, patch
@@ -195,6 +196,29 @@ class TestPluginManager:
         pm = PluginManager()
         with pytest.raises(ModuleNotFoundError):
             pm.load_module("nonexistent.module.xyz")
+
+    def test_load_module_with_mock(self):
+        pm = PluginManager()
+        with patch("importlib.import_module") as mock_import:
+            mock_import.return_value = "mock_module"
+            result = pm.load_module("some.module")
+            mock_import.assert_called_once_with("some.module")
+            assert result == "mock_module"
+
+    def test_load_module_empty_string(self):
+        pm = PluginManager()
+        with pytest.raises(ValueError, match="Empty module name"):
+            pm.load_module("")
+
+    def test_load_module_invalid_type(self):
+        pm = PluginManager()
+        with pytest.raises((TypeError, AttributeError)):
+            pm.load_module(123)  # type: ignore[arg-type]
+
+    def test_load_module_builtin(self):
+        pm = PluginManager()
+        mod = pm.load_module("os")
+        assert mod is os
 
     def test_global_singleton_exists(self):
         assert isinstance(plugin_manager, PluginManager)
