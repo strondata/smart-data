@@ -310,3 +310,41 @@ def get_pipeline_lineage(flow_id: str) -> dict[str, Any]:
     graph.add_node(node)
 
     return graph.to_dict()
+
+@mcp.tool()
+def run_qa_checks(target_dir: str = ".", deep: bool = False) -> dict[str, Any]:
+    """Run autonomous QA/DX code review on the codebase.
+
+    Allows the AI agent to review the codebase for docstrings, CLI/Makefile
+    consistency, and architectural contract violations.
+
+    Parameters
+    ----------
+    target_dir:
+        The root directory of the codebase to analyze.
+    deep:
+        Whether to run deep external analysis tools like Ruff.
+
+    Returns
+    -------
+    dict
+        A status dict with keys ``status``, ``score``, ``passed``, and ``issues``.
+    """
+    _mark_request()
+
+    from aptdata.qa.agent import QAAgent
+    try:
+        agent = QAAgent(root_dir=target_dir)
+        report = agent.run_all_checks(deep=deep)
+        return {
+            "status": "completed",
+            "score": report.score,
+            "passed": report.passed,
+            "issues": [i.model_dump() for i in report.issues]
+        }
+    except Exception as exc:  # noqa: BLE001
+        return {
+            "status": "error",
+            "error": str(exc),
+            "error_type": type(exc).__name__,
+        }

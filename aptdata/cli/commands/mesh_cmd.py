@@ -427,3 +427,85 @@ def _build_docker_compose(component: str, comp_dir: Path) -> None:
             f"Docker Compose build for '{component}' failed"
             f" with code {result.returncode}."
         )
+
+@mesh_app.command("lint")
+def mesh_lint(
+    directory: Path = typer.Option(
+        Path("."),
+        "--dir",
+        "-d",
+        help="Base directory to run QA linting on.",
+        exists=True,
+        resolve_path=True,
+    ),
+    deep: bool = typer.Option(False, "--deep", help="Run deep external tools like ruff."),
+    json_mode: bool = typer.Option(False, "--json", help="Emit JSON lines."),
+) -> None:
+    """Run QA and DX linting on the current project/component.
+
+    This invokes the autonomous QA agent to check for documentation
+    standards, Makefile consistency, docstrings, and contract-first
+    architecture violations.
+
+    Examples
+    --------
+    aptdata mesh lint
+    aptdata mesh lint --deep
+    """
+    from aptdata.qa.agent import QAAgent
+    console = SmartConsole(json_mode=json_mode)
+
+    if json_mode:
+        print(
+            json.dumps({"event": "mesh.lint.started", "directory": str(directory), "deep": deep}),
+            flush=True,
+        )
+    else:
+        console.info(f"Running QA/DX agent on '{directory}' (deep={deep})")
+
+    try:
+        agent = QAAgent(root_dir=directory)
+        report = agent.run_all_checks(deep=deep)
+
+        if json_mode:
+            # Emit the report as JSON
+            print(report.model_dump_json(), flush=True)
+            print(
+                json.dumps({"event": "mesh.lint.completed", "passed": report.passed, "score": report.score}),
+                flush=True,
+            )
+        else:
+            from rich.table import Table
+
+            if not report.issues:
+                console.success(f"All checks passed! Score: {report.score}/100")
+                return
+
+            table = Table(title=f"QA/DX Report (Score: {report.score}/100 - Passed: {report.passed})", show_header=True)
+            table.add_column("Rule", style="cyan")
+            table.add_column("Severity", style="bold")
+            table.add_column("File:Line", style="dim")
+            table.add_column("Message")
+
+            for issue in report.issues:
+                sev_color = "red" if issue.severity == "error" else "yellow"
+                loc = issue.file
+                if issue.line:
+                    loc += f":{issue.line}"
+                table.add_row(issue.rule_id, f"[{sev_color}]{issue.severity}[/]", loc, issue.message)
+
+            console.render(table)
+
+            if not report.passed:
+                console.error("QA/DX validation failed due to critical errors or low score.")
+                raise typer.Exit(1)
+
+    except Exception as exc:  # noqa: BLE001
+        if json_mode:
+            print(
+                json.dumps({"event": "mesh.lint.error", "error": str(exc)}),
+                flush=True,
+            )
+        else:
+            console.error(f"Failed to run QA agent: {exc}")
+        raise typer.Exit(1) from exc

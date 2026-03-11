@@ -1,0 +1,41 @@
+name: PR Code Review (QA/DX)
+
+on:
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  review:
+    name: Code Quality & DX Review
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install Dependencies
+        run: |
+          pip install poetry
+          poetry install --with dev
+          pip install ruff mypy pydocstyle pytest radon
+
+      - name: Run QA/DX Agent
+        run: |
+          poetry run aptdata mesh lint --json > qa_report.json || true
+
+      - name: Post QA Review
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          python scripts/post_qa_review.py
