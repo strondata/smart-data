@@ -350,6 +350,77 @@ def mesh_build(
         console.success(f"Component [bold cyan]{component}[/] built successfully.")
 
 
+@mesh_app.command("clean")
+def mesh_clean(
+    directory: Path = typer.Option(
+        Path("."),
+        "--dir",
+        "-d",
+        help="Directory to scan for obsolete code.",
+        exists=True,
+        file_okay=False,
+        dir_okay=True,
+        resolve_path=True,
+    ),
+    json_mode: bool = typer.Option(False, "--json", help="Emit JSON lines."),
+) -> None:
+    """Run code hygiene scan to find unused code and dead components.
+
+    Examples
+    --------
+    aptdata mesh clean
+    aptdata mesh clean --json
+    """
+    from aptdata.core.hygiene import scan_codebase  # noqa: PLC0415
+
+    console = SmartConsole(json_mode=json_mode)
+
+    if json_mode:
+        print(
+            json.dumps({"event": "mesh.clean.started", "directory": str(directory)}),
+            flush=True,
+        )
+    else:
+        console.info(f"Scanning [bold cyan]{directory}[/] for dead code...")
+
+    findings = scan_codebase(directory)
+
+    if json_mode:
+        for finding in findings:
+            print(json.dumps(finding), flush=True)
+        print(
+            json.dumps({"event": "mesh.clean.completed", "count": len(findings)}),
+            flush=True,
+        )
+    else:
+        if not findings:
+            console.success("No dead code or unused imports found!")
+            return
+
+        from rich.table import Table  # noqa: PLC0415
+
+        table = Table(title="Code Hygiene Findings", show_header=True)
+        table.add_column("File", style="cyan")
+        table.add_column("Line", justify="right")
+        table.add_column("Rule", style="magenta")
+        table.add_column("Message")
+        table.add_column("In Docs?", style="yellow")
+
+        for f in findings:
+            table.add_row(
+                f["file_path"],
+                str(f["line_number"]),
+                f["rule_code"],
+                f["message"],
+                "Yes" if f["is_in_docs"] else "No",
+            )
+        console.render(table)
+        console.warning(
+            f"Found {len(findings)} potential issue(s). "
+            "Review them before removal."
+        )
+
+
 # ---------------------------------------------------------------------------
 # Internal helpers
 # ---------------------------------------------------------------------------

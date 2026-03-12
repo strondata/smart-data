@@ -295,6 +295,33 @@ def list_business_rules() -> str:
 
 
 @mcp.tool()
+def run_code_hygiene(directory: str = ".") -> dict[str, Any]:
+    """Execute a code hygiene scan to detect dead code and unused imports.
+
+    Runs a static analysis combined with semantic cross-referencing
+    against the 'docs/' folder to find obsolete code.
+
+    Parameters
+    ----------
+    directory:
+        The root directory to scan (defaults to the current working directory).
+
+    Returns
+    -------
+    dict
+        A summary containing the number of findings and a list of issues.
+    """
+    _mark_request()
+    try:
+        from aptdata.core.hygiene import scan_codebase
+
+        findings = scan_codebase(directory)
+        return {"status": "success", "count": len(findings), "findings": findings}
+    except Exception as exc:  # noqa: BLE001
+        return {"status": "error", "error": str(exc)}
+
+
+@mcp.tool()
 def get_pipeline_lineage(flow_id: str) -> dict[str, Any]:
     """Return the dependency tree (DAG) and column traceability (Lineage)."""
     _mark_request()
