@@ -16,6 +16,7 @@ single, coherent model:
 
 ```mermaid
 flowchart TD
+    classDef default fill:rgba(255,255,255,0.02),stroke:#ff6a00,stroke-width:1px,color:inherit,rx:8px,ry:8px;
     I["IComponent / IFlow / ISystem\n@dataclass + ABC — pure interfaces"]
     B["BaseComponent / BaseFlow / BaseSystem\n@pydantic_dataclass — validated fields"]
     Y["Your concrete implementations"]

@@ -31,6 +31,7 @@ coverage.xml
 
 # MkDocs
 site/
+.cache/
 
 # IDE
 .idea/

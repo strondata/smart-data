@@ -1,3 +1,10 @@
+---
+tags:
+  - tutorial
+  - getting-started
+  - instalacao
+---
+
 # Primeiros Passos (Getting Started)
 
 ## Requisitos
@@ -65,6 +72,7 @@ O fluxo lógico de orquestração do framework segue cinco etapas principais:
 
 ```mermaid
 flowchart LR
+    classDef default fill:rgba(255,255,255,0.02),stroke:#ff6a00,stroke-width:1px,color:inherit,rx:8px,ry:8px;
     DS["1️⃣ Dataset\nLeitura / Escrita (IDataset)"]
     CO["2️⃣ Component\nTransformação (IComponent)"]
     FL["3️⃣ Flow\nConexões Condicionais (IFlow)"]
@@ -110,10 +118,10 @@ from aptdata.core import BaseComponent, ComponentMeta, ComponentKind, IDataset
 class DoubleComponent(BaseComponent):
     """Duplica todos os valores numéricos da lista."""
 
-    def validate_inputs(self, inputs: list[IDataset]) -> bool:
+    def validate_inputs(self, inputs: list[IDataset]) -> bool: # (1)!
         return len(inputs) == 1
 
-    def execute(self, inputs: list[IDataset]) -> list[IDataset]:
+    def execute(self, inputs: list[IDataset]) -> list[IDataset]: # (2)!
         data = inputs[0].read()
         out = MemoryDataset(uri="memory://output")
         out.write([x * 2 for x in data])
@@ -124,6 +132,9 @@ comp = DoubleComponent(
     metadata=ComponentMeta(kind=ComponentKind.TRANSFORM, tags=["math"]),
 )
 ```
+
+1. Validação de pré-requisitos antes de tentar executar o componente, evitando falhas silenciosas.
+2. A injeção e o retorno de instâncias `IDataset` garantem rastreabilidade em todo o pipeline.
 
 !!! tip "Dica de DX"
     Com a API Declarativa (decorators como `@pandas_component`), a instanciação manual do `InMemoryDataset` é feita pelo framework "por debaixo dos panos". Você codifica apenas a função recebendo e devolvendo DataFrames.

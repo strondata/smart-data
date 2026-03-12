@@ -54,6 +54,8 @@ extra_javascript:
 copyright: Copyright &copy; 2024 Strondata - Mantido pela comunidade open source.
 
 extra:
+  version:
+    provider: mike
   social:
     - icon: fontawesome/brands/github
       link: https://github.com/strondata/smart-data
@@ -71,7 +73,10 @@ extra_css:
   - stylesheets/termynal.css
 
 plugins:
-  - search
+  - social
+  - search:
+      lang: pt
+  - tags
   - autorefs:
       link_titles: auto
   - mkdocstrings:
@@ -86,26 +91,28 @@ plugins:
 
 nav:
   - Home: index.md
-  - Getting Started:
+  - Community:
+      - Contribuindo: contributing.md
+  - Tutoriais (Learning-oriented):
       - Overview: getting-started.md
       - Scaffold Templates: scaffold-templates.md
+  - Guias de Como Fazer (Problem-oriented):
       - Configuration: configuration.md
       - DIYs & Snippets: diys.md
-  - Core:
+  - Explicações (Understanding-oriented):
       - Architecture: architecture.md
       - ADR 001 - Revisão Core: ADR-001-Revisao-Arquitetural-Core.md
       - Quality: quality.md
       - Governance: governance.md
       - Telemetry: telemetry.md
       - CI & Execution Logs: ci-logs.md
-  - Plugins:
-      - Engines: transform-engines.md
-      - MCP Server: mcp.md
-  - API:
+      - Transform Engines: transform-engines.md
+  - Referência (Information-oriented):
       - Core Reference: api/core.md
-      - CLI: api/cli.md
+      - CLI Reference: api/cli.md
       - CLI Interactive: api/cli-interactive.md
       - Plugins Reference: api/plugins.md
+      - MCP Server: mcp.md
   - Changelog: changelog.md
   - AI Docs:
       - llms.txt: llms.txt

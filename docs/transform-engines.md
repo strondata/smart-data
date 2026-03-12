@@ -92,6 +92,7 @@ Ambos implementam a abstração `BaseTransformer` e são compatíveis com `Workf
 
 ```mermaid
 flowchart LR
+    classDef default fill:rgba(255,255,255,0.02),stroke:#ff6a00,stroke-width:1px,color:inherit,rx:8px,ry:8px;
     DS["📥 Dataset\n(InMemoryDataset)"]
     PT["⚙️ PandasTransformer\nou PySparkTransformer"]
     QV["✅ QualityValidator"]
