@@ -7,6 +7,8 @@ edit_uri: edit/main/docs/
 
 theme:
   name: material
+  logo: assets/logo.svg
+  favicon: assets/favicon.svg
   palette:
     - media: "(prefers-color-scheme: dark)"
       scheme: slate
@@ -36,6 +38,7 @@ theme:
     - content.tabs.link
     - search.suggest
     - search.highlight
+    - navigation.footer
 
   font:
     text: Inter
@@ -46,13 +49,46 @@ theme:
 
 extra_javascript:
   - https://unpkg.com/mermaid@11/dist/mermaid.min.js
+  - assets/termynal.js
+
+copyright: Copyright &copy; 2024 Strondata - Mantido pela comunidade open source.
+
+extra:
+  version:
+    provider: mike
+  analytics:
+    feedback:
+      title: Esta página foi útil?
+      ratings:
+        - icon: material/emoticon-happy-outline
+          name: Sim, foi útil
+          data: 1
+          note: Obrigado pelo feedback!
+        - icon: material/emoticon-sad-outline
+          name: Não, precisa melhorar
+          data: 0
+          note: Obrigado. Vamos usar este feedback para melhorar a documentação.
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/strondata/smart-data
+      name: Repositório Oficial do aptdata
+    - icon: fontawesome/brands/linkedin
+      link: https://www.linkedin.com/company/strondata/
+      name: Acompanhe a Strondata no LinkedIn
+    - icon: fontawesome/brands/discord
+      link: https://discord.gg/strondata
+      name: Junte-se à Comunidade no Discord
 
 extra_css:
   - stylesheets/extra.css
   - stylesheets/custom.css
+  - stylesheets/termynal.css
 
 plugins:
-  - search
+  - search:
+      lang: pt
+  - tags
+  - social
   - autorefs:
       link_titles: auto
   - mkdocstrings:
@@ -67,27 +103,29 @@ plugins:
 
 nav:
   - Home: index.md
-  - Getting Started:
-      - Overview: getting-started.md
+  - Tutoriais:
+      - Getting Started: getting-started.md
       - Scaffold Templates: scaffold-templates.md
-      - Configuration: configuration.md
-      - DIYs & Snippets: diys.md
-  - Core:
-      - Architecture: architecture.md
+  - Guias (Como Fazer):
+      - Integrações e Engines: transform-engines.md
+      - Servidor MCP para IAs: mcp.md
+      - Snippets de Código Úteis: diys.md
+      - Configuração: configuration.md
+  - Explicações (Conceitos):
+      - Arquitetura: architecture.md
+      - Qualidade de Dados: quality.md
+      - Governança de Dados: governance.md
+      - Telemetria e Logs: telemetry.md
+      - CI & Logs de Execução: ci-logs.md
       - ADR 001 - Revisão Core: ADR-001-Revisao-Arquitetural-Core.md
-      - Quality: quality.md
-      - Governance: governance.md
-      - Telemetry: telemetry.md
-      - CI & Execution Logs: ci-logs.md
-  - Plugins:
-      - Engines: transform-engines.md
-      - MCP Server: mcp.md
-  - API:
-      - Core Reference: api/core.md
-      - CLI: api/cli.md
-      - CLI Interactive: api/cli-interactive.md
-      - Plugins Reference: api/plugins.md
-  - Changelog: changelog.md
+  - Referência (API):
+      - API do Core: api/core.md
+      - API de Plugins: api/plugins.md
+      - CLI Reference: api/cli.md
+      - CLI Interativa: api/cli-interactive.md
+  - Comunidade:
+      - Changelog: changelog.md
+      - Contribuindo: CONTRIBUTING.md
   - AI Docs:
       - llms.txt: llms.txt
       - llms-full.txt: llms-full.txt

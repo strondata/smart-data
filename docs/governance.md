@@ -235,3 +235,37 @@ catalog.register(DatasetCatalogEntry(
 # Extrai metadados sensíveis diretamente do contrato
 pii_cols = contract.get_pii_columns()
 ```
+
+---
+
+## Fluxo de Validação de Contratos (Data Contracts)
+
+```mermaid
+flowchart LR
+    %% Estilos Customizados (Design Premium)
+    classDef default fill:#0b132b,stroke:rgba(255,255,255,0.2),stroke-width:1px,color:#fff,rx:8px,ry:8px;
+    classDef accent fill:#ff6a00,stroke:#ff6a00,stroke-width:1px,color:#fff,rx:8px,ry:8px;
+    classDef success fill:#0d2b18,stroke:#178a3f,stroke-width:1px,color:#fff,rx:8px,ry:8px;
+    classDef danger fill:#2b0d0d,stroke:#8a1717,stroke-width:1px,color:#fff,rx:8px,ry:8px;
+    classDef interface fill:transparent,stroke:rgba(255,255,255,0.4),stroke-width:1px,stroke-dasharray: 5 5,color:#fff;
+
+    %% Nós do Sistema
+    A[(Fonte de Dados)] --> B{Validar Contrato<br>Pydantic}
+
+    %% Ramificações Condicionais
+    B -- Contrato Válido --> C[Processamento<br>aptdata Engine]:::success
+    B -- Falha na Validação --> D[Dead Letter Queue<br>Quarentena]:::danger
+
+    %% Roteamento Dinâmico
+    C --> E{Roteamento<br>por Metadados}:::accent
+
+    E -- Qualidade Alta --> F[Data Warehouse<br>Gold Layer]
+    E -- Necessita Tratamento --> G[Limpeza Avançada]
+
+    %% Agrupamento (Subgrafos com linha tracejada)
+    subgraph Governança Estrita
+        B
+        D
+    end
+    class Governança Estrita interface;
+```

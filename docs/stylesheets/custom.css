@@ -1,13 +1,27 @@
 /* docs/stylesheets/custom.css */
-:root {
+
+/* --- Variáveis Globais (Light Mode por Padrão) --- */
+[data-md-color-scheme="default"] {
   /* Azul Escuro Tecnológico para as barras e cabeçalhos */
   --md-primary-fg-color: #0b132b;
   --md-primary-fg-color--light: #1c2541;
   --md-primary-fg-color--dark: #050a1f;
 
-  /* Laranja Vibrante para o Accent (botões, links, etc) */
+  /* Laranja levemente mais escuro para garantir taxa de contraste AAA no fundo branco */
+  --md-accent-fg-color: #e65c00;
+  --md-accent-fg-color--transparent: rgba(230, 92, 0, 0.1);
+}
+
+/* --- Variáveis para Dark Mode (Slate) --- */
+[data-md-color-scheme="slate"] {
+  /* Azul Escuro Tecnológico adaptado para modo noturno */
+  --md-primary-fg-color: #0b132b;
+  --md-primary-fg-color--light: #1c2541;
+  --md-primary-fg-color--dark: #050a1f;
+
+  /* Laranja Vibrante, brilha lindamente em contraste com o fundo escuro */
   --md-accent-fg-color: #ff6a00;
-  --md-accent-fg-color--transparent: rgba(255, 106, 0, 0.1);
+  --md-accent-fg-color--transparent: rgba(255, 106, 0, 0.15);
 }
 
 /* ---------------------------------------------------
@@ -71,4 +85,14 @@
     background-color: var(--md-accent-fg-color);
     color: #ffffff;
     border: none;
+}
+
+/* Container dos diagramas Mermaid */
+.md-typeset .mermaid {
+    background-color: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin: 2em 0;
+    text-align: center;
 }

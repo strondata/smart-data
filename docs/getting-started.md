@@ -1,3 +1,10 @@
+---
+tags:
+  - tutorial
+  - core
+  - IA
+---
+
 # Primeiros Passos (Getting Started)
 
 ## Requisitos
@@ -16,11 +23,14 @@
     ```
 
 === "Pip"
-    ```bash
-    pip install aptdata
-    # Para plugins opcionais:
-    pip install "aptdata[pandas]"
-    ```
+    <div class="termy">
+      <span data-ty="input">pip install aptdata</span>
+      <span data-ty="progress"></span>
+      <span data-ty>Successfully installed aptdata-0.1.0</span>
+      <span data-ty></span>
+      <span data-ty="input" data-ty-prompt=">"># Para plugins opcionais:</span>
+      <span data-ty="input">pip install "aptdata[pandas]"</span>
+    </div>
 
 ### Dependências Opcionais
 - `pandas`: Suporte ao Pandas e `PandasTransformComponent`
@@ -79,18 +89,22 @@ from pydantic.dataclasses import dataclass as pydantic_dataclass
 from aptdata.core import BaseDataset
 
 @pydantic_dataclass
-class MemoryDataset(BaseDataset):
+class MemoryDataset(BaseDataset): # (1)!
     """Dataset em memória para propósitos de teste."""
 
-    def __post_init__(self) -> None:
+    def __post_init__(self) -> None: # (2)!
         self._data = None
 
-    def read(self):
+    def read(self): # (3)!
         return self._data
 
     def write(self, data) -> None:
         self._data = data
 ```
+
+1. A herança de `BaseDataset` garante injeção do esquema Pydantic para validação robusta.
+2. O método `__post_init__` é o local ideal para definir propriedades mutáveis ou privadas que não devem ser validadas como input do construtor.
+3. O método `read()` é onde a lógica de extração real (ex: chamar a API do Pandas ou do Spark) acontece.
 
 ### 2. Criar um Componente
 Um Componente (implementa `IComponent`) recebe uma lista de *inputs* validados, os processa, e retorna uma lista de *outputs* (permitindo múltiplas saídas ou fluxos paralelos).

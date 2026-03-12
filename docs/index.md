@@ -19,6 +19,13 @@ hide:
   [🚀 Comece Agora](getting-started.md){ .md-button .md-button--primary style="margin-right: 10px;" }
   [🐙 GitHub](https://github.com/strondata/smart-data){ .md-button }
 
+  <br><br>
+
+  [![PyPI Version](https://img.shields.io/pypi/v/aptdata.svg)](https://pypi.org/project/aptdata/)
+  [![Python Versions](https://img.shields.io/pypi/pyversions/aptdata.svg)](https://pypi.org/project/aptdata/)
+  [![License](https://img.shields.io/github/license/strondata/smart-data.svg)](https://github.com/strondata/smart-data/blob/main/LICENSE)
+  [![GitHub Stars](https://img.shields.io/github/stars/strondata/smart-data.svg)](https://github.com/strondata/smart-data/stargazers)
+
 </div>
 
 ---
