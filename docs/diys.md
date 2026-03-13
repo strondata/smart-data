@@ -10,20 +10,21 @@ Use o `PandasTransformer` para encapsular funções puras e reaproveitar código
 
 ```python title="clean_data.py"
 import pandas as pd
-from pydantic.dataclasses import dataclass
-from aptdata.core import BaseDataset, IDataset
+from typing import Any
+from pydantic.dataclasses import dataclass as pydantic_dataclass
+from aptdata.core import BaseDataset
 from aptdata.plugins.transform import PandasTransformer
 
-@dataclass
+@pydantic_dataclass
 class DataFrameDataset(BaseDataset):
-    """Um dataset simples armazenando um DataFrame Pandas."""
+    """Armazena um DataFrame Pandas."""
     def __post_init__(self):
         self._data = None
 
-    def read(self) -> pd.DataFrame:
+    def read(self) -> Any:
         return self._data
 
-    def write(self, data: pd.DataFrame):
+    def write(self, data: Any):
         self._data = data
 
 # 1. Defina sua lógica padrão do Pandas

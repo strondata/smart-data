@@ -61,49 +61,50 @@ Commands:
 
 ## Construindo seu Primeiro Sistema
 
-O fluxo lógico de orquestração do framework segue cinco etapas principais:
+O fluxo de orquestração do framework segue cinco etapas:
 
 ```mermaid
 flowchart LR
     %% Estilos Customizados (Design Premium)
     classDef default fill:#0b132b,stroke:#ff6a00,stroke-width:1px,color:#fff,rx:8px,ry:8px;
 
-    DS["1️⃣ Dataset\nLeitura / Escrita (IDataset)"]
-    CO["2️⃣ Component\nTransformação (IComponent)"]
-    FL["3️⃣ Flow\nConexões Condicionais (IFlow)"]
-    SY["4️⃣ System\nOrquestrador Base (ISystem)"]
-    RG["5️⃣ Execução\nCLI ou Plugin Registry"]
+    DS["1️⃣ Dataset\n(IDataset)"]
+    CO["2️⃣ Component\n(IComponent)"]
+    FL["3️⃣ Flow\n(IFlow)"]
+    SY["4️⃣ System\n(ISystem)"]
+    RG["5️⃣ Execução\n(CLI/Registry)"]
 
     DS --> CO --> FL --> SY --> RG
 ```
 
 ### 1. Criar um Dataset
-Um Dataset implementa as operações de leitura e escrita através do contrato `IDataset`. Herdando de `BaseDataset`, você recebe injeção de estado e validação via Pydantic.
+Um Dataset implementa as operações I/O através do contrato `IDataset`. Herdando de `BaseDataset`, você recebe injeção de estado e validação Pydantic.
 
 ```python
+from typing import Any
 from pydantic.dataclasses import dataclass as pydantic_dataclass
 from aptdata.core import BaseDataset
 
 @pydantic_dataclass
 class MemoryDataset(BaseDataset): # (1)!
-    """Dataset em memória para propósitos de teste."""
+    """Dataset em memória para testes."""
 
     def __post_init__(self) -> None: # (2)!
         self._data = None
 
-    def read(self): # (3)!
+    def read(self) -> Any: # (3)!
         return self._data
 
-    def write(self, data) -> None:
+    def write(self, data: Any) -> None:
         self._data = data
 ```
 
-1. A herança de `BaseDataset` garante injeção do esquema Pydantic para validação robusta.
-2. O método `__post_init__` é o local ideal para definir propriedades mutáveis ou privadas que não devem ser validadas como input do construtor.
-3. O método `read()` é onde a lógica de extração real (ex: chamar a API do Pandas ou do Spark) acontece.
+1. A herança garante injeção do esquema Pydantic para validação robusta.
+2. `__post_init__` é ideal para propriedades privadas não validadas no construtor.
+3. `read()` realiza a extração real (ex: API Pandas/Spark).
 
 ### 2. Criar um Componente
-Um Componente (implementa `IComponent`) recebe uma lista de *inputs* validados, os processa, e retorna uma lista de *outputs* (permitindo múltiplas saídas ou fluxos paralelos).
+Um Componente recebe uma lista de *inputs* validados, os processa e retorna uma lista de *outputs*.
 
 ```python
 from pydantic.dataclasses import dataclass as pydantic_dataclass
@@ -111,7 +112,7 @@ from aptdata.core import BaseComponent, ComponentMeta, ComponentKind, IDataset
 
 @pydantic_dataclass
 class DoubleComponent(BaseComponent):
-    """Duplica todos os valores numéricos da lista."""
+    """Duplica valores numéricos da lista."""
 
     def validate_inputs(self, inputs: list[IDataset]) -> bool:
         return len(inputs) == 1
@@ -129,14 +130,15 @@ comp = DoubleComponent(
 ```
 
 !!! tip "Dica de DX"
-    Com a API Declarativa (decorators como `@pandas_component`), a instanciação manual do `InMemoryDataset` é feita pelo framework "por debaixo dos panos". Você codifica apenas a função recebendo e devolvendo DataFrames.
+    Com a API Declarativa (ex: `@pandas_component`), a instanciação manual do `InMemoryDataset` ocorre de forma transparente. Você codifica apenas a função recebendo e devolvendo DataFrames.
 
 ### 3. Criar um Fluxo (Flow)
-Um Fluxo liga componentes em um Grafo Direcionado. Herdando de `BaseFlow`, as arestas suportam condicionais nativas (`FlowEdge`).
+Um Fluxo conecta componentes em um Grafo Direcionado.
 
 ```python
 from pydantic.dataclasses import dataclass as pydantic_dataclass
 from aptdata.core import BaseFlow, IComponent, IDataset, FlowEdge, FlowNode
+from pydantic import BaseModel
 from typing import Callable
 
 @pydantic_dataclass
@@ -146,8 +148,14 @@ class SimpleFlow(BaseFlow):
         self._edges: list[FlowEdge] = []
         self._order: list[str] = []
 
-    def add_component(self, c: IComponent) -> None:
-        self._nodes[c.component_id] = FlowNode(component=c, flow=self)
+    def add_component(
+        self,
+        component: type[IComponent] | IComponent,
+        output_contract: type[BaseModel] | None = None,
+    ) -> None:
+        # Simplificação para exemplo de código
+        comp_instance = component() if isinstance(component, type) else component
+        self._nodes[comp_instance.component_id] = FlowNode(component=comp_instance, flow=self)
 
     def connect(self, src: str, tgt: str, condition: Callable | None = None) -> None:
         self._edges.append(FlowEdge(source_id=src, target_id=tgt, condition=condition))

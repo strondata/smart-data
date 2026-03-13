@@ -5,7 +5,7 @@
 
     * [ADR 001: Revisão Arquitetural do Core e Simplificação de Fluxos (DX)](ADR-001-Revisao-Arquitetural-Core.md)
 
-O **aptdata** foi projetado com base em um sistema de contrato de duas camadas para cada uma de suas três abstrações fundamentais — **Component**, **Flow**, e **System** — e para o seu tipo fundamental **Dataset**.
+O **aptdata** utiliza um sistema de contrato de duas camadas para suas três abstrações fundamentais (**Component**, **Flow**, **System**) e o tipo primário **Dataset**.
 
 ---
 
@@ -16,9 +16,9 @@ graph LR
     %% Estilos Customizados (Design Premium)
     classDef default fill:#0b132b,stroke:#ff6a00,stroke-width:1px,color:#fff,rx:8px,ry:8px;
 
-    C["🔧 Component\nUnidade Reutilizável de Trabalho\n(Filtro, Junção, Transformação)"]
-    F["🔀 Flow\nGrafo Direcionado de Componentes"]
-    S["🏛 System\nOrquestrador de Nível Superior\nPossui um ou mais Fluxos"]
+    C["🔧 Component\nUnidade de Trabalho"]
+    F["🔀 Flow\nGrafo Direcionado"]
+    S["🏛 System\nOrquestrador Superior"]
 
     C --> F --> S
 ```
@@ -157,15 +157,18 @@ Valores permitidos para `ComponentKind`: `TRANSFORM`, `FILTER`, `AGGREGATE`, `EX
 
 ## Primitivas de Roteamento de Fluxo
 
-As execuções condicionais e as ramificações de pipeline não são resolvidas via "If/Else" nas transformações do código de negócios. Elas são formalizadas pela estrutura `FlowEdge` (Grafo Aresta).
+Ramificações não utilizam blocos "If/Else" no código de negócios. Elas são gerenciadas pela estrutura `FlowEdge`:
+
+- **Aresta Incondicional:** Sempre trafegada.
+- **Aresta Condicional:** Trafegada apenas se o predicado retornar `True`.
 
 ```python
 from aptdata.core import FlowEdge
 
-# Aresta Incondicional: sempre será trafegada
+# Incondicional
 FlowEdge(source_id="extract", target_id="transform")
 
-# Aresta Condicional: Somente trafegada quando o predicato é avaliado em True
+# Condicional
 FlowEdge(
     source_id="transform",
     target_id="load",
