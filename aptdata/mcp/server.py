@@ -44,6 +44,7 @@ class _MockMCP:
         )
 
 
+from aptdata.core.hygiene import run_code_hygiene  # noqa: E402
 from aptdata.core.lineage import (  # noqa: E402
     LineageEventType,
     LineageGraph,
@@ -310,3 +311,24 @@ def get_pipeline_lineage(flow_id: str) -> dict[str, Any]:
     graph.add_node(node)
 
     return graph.to_dict()
+
+
+@mcp.tool()
+def run_code_hygiene_tool(
+    target_dir: str = "aptdata/", dry_run: bool = False
+) -> dict[str, Any]:
+    """Run code hygiene to find/remove dead code and unused imports."""
+    _mark_request()
+    try:
+        reports = run_code_hygiene(target_dir=target_dir, dry_run=dry_run)
+        return {
+            "status": "completed",
+            "reports": reports,
+            "target_dir": target_dir,
+            "dry_run": dry_run,
+        }
+    except Exception as exc:  # noqa: BLE001
+        return {
+            "status": "error",
+            "error": str(exc),
+        }

@@ -9,6 +9,7 @@ from pathlib import Path
 import typer
 
 from aptdata.cli.rendering.console import SmartConsole
+from aptdata.core.hygiene import run_code_hygiene
 
 mesh_app = typer.Typer(
     name="mesh", help="Orchestrate mesh components (job-wheel, docker-compose-app, …)."
@@ -348,6 +349,46 @@ def mesh_build(
         )
     else:
         console.success(f"Component [bold cyan]{component}[/] built successfully.")
+
+
+@mesh_app.command("clean")
+def mesh_clean(
+    directory: Path = typer.Option(
+        Path("aptdata/"),
+        "--dir",
+        "-d",
+        help="Target directory to run code hygiene on.",
+        exists=True,
+        resolve_path=True,
+    ),
+    dry_run: bool = typer.Option(
+        False, "--dry-run", help="Report findings without making changes."
+    ),
+    json_mode: bool = typer.Option(False, "--json", help="Emit JSON lines."),
+) -> None:
+    """Run code hygiene (vulture and ruff) on the target directory.
+
+    Removes dead code and unused imports. Useful to reduce technical debt.
+    Emits structural logs for tracking via an LLM or CI/CD dashboards.
+    """
+    console = SmartConsole(json_mode=json_mode)
+    target = directory.resolve()
+
+    if not json_mode:
+        console.info(f"Running code hygiene on '{target}'")
+
+    reports = run_code_hygiene(target_dir=str(target), dry_run=dry_run)
+    for report in reports:
+        if json_mode:
+            print(json.dumps(report), flush=True)
+        else:
+            action = report.get("action", "unknown")
+            msg = report.get("message", "")
+            tool = report.get("tool", "")
+            console.info(f"[{tool}] {action}: {msg}")
+
+    if not json_mode:
+        console.success("Code hygiene completed.")
 
 
 # ---------------------------------------------------------------------------

@@ -1,0 +1,100 @@
+name: Code Hygiene & Tech Debt Reduction
+
+on:
+  schedule:
+    - cron: '0 3 * * *'  # Run daily at 3:00 AM UTC
+  workflow_dispatch:     # Allow manual trigger
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  hygiene:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          version: 1.8.3
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+
+      - name: Install dependencies
+        run: poetry install --with dev --all-extras
+
+      - name: Checkout or Create 'clean' branch
+        run: |
+          if git ls-remote --exit-code --heads origin clean; then
+            git fetch origin clean
+            git checkout clean
+            git merge origin/main --no-edit || { git merge --abort; exit 1; }
+          else
+            git checkout -b clean origin/main
+          fi
+
+      - name: Run Code Hygiene Analysis
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          poetry run aptdata mesh clean --json > ../hygiene_report.jsonl
+          cat ../hygiene_report.jsonl
+
+      - name: Check for changes
+        id: git-check
+        run: |
+          if [[ -n $(git status -s aptdata/ docs/) ]]; then
+            echo "changes=true" >> $GITHUB_OUTPUT
+          else
+            echo "changes=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Commit and Push Changes
+        if: steps.git-check.outputs.changes == 'true'
+        run: |
+          git add aptdata/ docs/
+          git commit -m "🧹 chore: automated code hygiene (dead code & unused imports removal)"
+          git push origin clean
+
+      - name: Open Pull Request
+        if: steps.git-check.outputs.changes == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_TITLE="🧹 chore: automated code hygiene (dead code & unused imports removal)"
+
+          # Extract removed/fixed items to list them in the PR body
+          REMOVALS=$(cat ../hygiene_report.jsonl | jq -r 'select(.action == "removed" or .action == "fixed") | "- \(.tool): \(.message)"')
+
+          if [ -z "$REMOVALS" ]; then
+            REMOVALS="- No exact removal details found in logs, please check the diff."
+          fi
+
+          # Use the official template as base, but inject specific details
+          PR_BODY=$(cat .github/PULL_REQUEST_TEMPLATE.md)
+          CUSTOM_DESC="Automated PR by Code Hygiene Agent to reduce technical debt by removing dead code and unused imports.\n\n### Removals:\n$REMOVALS"
+          PR_BODY="${PR_BODY/<!-- A clear and concise description of what this PR changes and why. -->/$CUSTOM_DESC}"
+
+          # Check if PR already exists
+          PR_EXISTS=$(gh pr list --head clean --base main --json number --jq '. | length')
+
+          if [ "$PR_EXISTS" -eq 0 ]; then
+            gh pr create --title "$PR_TITLE" --body "$PR_BODY" --head clean --base main
+          else
+            echo "Pull Request from clean to main already exists. Updated branch."
+          fi
