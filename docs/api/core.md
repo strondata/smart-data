@@ -1,7 +1,7 @@
 # Core API
 
-The `aptdata.core` package exposes the two-layer contract system for all
-four foundational types.
+O pacote `aptdata.core` expõe o sistema de contratos de duas camadas para os
+quatro tipos fundamentais.
 
 ---
 
@@ -85,9 +85,9 @@ four foundational types.
 
 ---
 
-## Quick-import
+## Importação Rápida
 
-All names are re-exported from the top-level `aptdata.core` package:
+Todos os nomes são re-exportados pelo pacote principal `aptdata.core`:
 
 ```python
 from aptdata.core import (

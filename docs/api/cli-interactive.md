@@ -1,24 +1,25 @@
-# CLI Interactive Wizard
+# Assistente Interativo da CLI
 
-The `aptdata interactive` command launches a guided menu-driven wizard that
-exposes all framework capabilities without requiring knowledge of the full
-command tree.
+O comando `aptdata interactive` inicia um assistente guiado baseado em menus que
+expõe todos os recursos do framework sem a necessidade de decorar as
+árvores de comandos.
 
 ---
 
-## Starting the wizard
+## Iniciando o assistente
 
 ```bash
 aptdata interactive
 ```
 
-The wizard uses [questionary](https://github.com/tmbo/questionary) for
-interactive prompts when it is installed.  It gracefully falls back to plain
-`typer.prompt()` / `typer.confirm()` if questionary is not available.
+O assistente utiliza [questionary](https://github.com/tmbo/questionary) para
+prompts interativos caso ele esteja instalado. O sistema faz *fallback* gracioso
+para as funções `typer.prompt()` / `typer.confirm()` caso o `questionary` não
+esteja disponível.
 
 ---
 
-## Main menu
+## Menu Principal
 
 ```
 What would you like to do?
@@ -33,60 +34,59 @@ What would you like to do?
 
 ---
 
-## Wizard flows
+## Fluxos do Assistente
 
-### 🚀 Run
+### 🚀 Execução (Run)
 
-1. Select a registered system from the registry
-2. Choose an environment: `dev`, `staging`, or `prod`
-3. Confirm dry-run (yes → skip execution, no → call `run()`)
-4. Execute and stream Rich live output
+1. Seleciona um sistema registrado no *Registry*.
+2. Escolhe o ambiente: `dev`, `staging` ou `prod`.
+3. Confirma a simulação (*dry-run*) (yes → apenas compila, no → chama o `run()`).
+4. Executa e exibe os logs ricos do `Rich` em tempo real.
 
-### 📋 List
+### 📋 Listagem (List)
 
-1. Choose what to list: Systems / Readers / Writers / All plugins
-2. View a Rich table
-3. Optionally inspect a specific item
+1. Escolhe o que listar: Sistemas, Leitores, Escritores ou Todos.
+2. Visualiza a saída formatada em tabela rica.
+3. Permite a inspeção imediata de um item ao final.
 
-### 🔍 Inspect
+### 🔍 Inspeção (Inspect)
 
-1. Select a plugin from the registered readers + writers
-2. View the constructor argument schema in a Rich table
+1. Seleciona um plugin entre os registrados.
+2. Exibe o schema de argumentos Pydantic para instanciação do plugin.
 
-### 📝 Config
+### 📝 Configuração (Config)
 
-1. Choose: Load existing YAML or generate a template
-2. Validate the file (reports errors with context)
-3. Preview the YAML content with syntax highlighting
-4. Optionally run the system
+1. Escolhe: Carregar um YAML existente ou gerar um novo arquivo de base.
+2. Valida a sintaxe (exibe erros detalhados de esquema).
+3. Pré-visualiza o YAML final carregado na tela.
+4. Opção de execução automática e sequencial.
 
-### 🏗️ Scaffold
+### 🏗️ Andaimes (Scaffold)
 
-1. Enter the project name
-2. Select a template: `hello-world`, `medallion`, `rag-ingestion`,
-   `data-quality-test`
-3. Enter the output directory (default: `.`)
-4. Generate files and confirm success
+1. Recebe o nome do novo projeto.
+2. Escolhe o *template*: `hello-world`, `medallion`, `rag-ingestion`, `data-quality-test`.
+3. Informa o diretório destino (default: `.`).
+4. Inicializa o pacote, configura e exibe *success*.
 
-### ⚙️ Telemetry
+### ⚙️ Telemetria (Telemetry)
 
-1. Show OpenTelemetry provider status
-2. Optionally export telemetry as JSON
+1. Exibe o *status* do provedor do OpenTelemetry.
+2. Possibilidade opcional de enviar o buffer das métricas acumuladas.
 
 ---
 
-## Configuration
+## Configuração
 
-The wizard reuses the same rendering and logic as the static CLI commands,
-so all output (tables, panels, syntax highlighting) is consistent.
+O *wizard* reaproveita internamente as mesmas abstrações das flags de linha
+de comando normais, o que assegura compatibilidade exata na visualização.
 
-### Disabling questionary
+### Desabilitando o Questionary
 
-If you want to use plain prompts without the questionary dependency, simply
-uninstall it:
+Se for preciso forçar menus básicos (*plain prompts*) para terminais severamente
+limitados sem usar o `questionary`, basta desinstalá-lo do seu ambiente:
 
 ```bash
 pip uninstall questionary
 ```
 
-The wizard will automatically fall back to `typer.prompt()`.
+O assistente cairá no *fallback* automaticamente usando a função `typer.prompt()`.

@@ -1,44 +1,41 @@
-# CLI Reference
+# Referência da CLI
 
-The `aptdata` command-line interface emits **structured JSON** on every
-outcome, making it suitable for use inside AI orchestrators, CI/CD pipelines
-and shell scripts.
+A interface de linha de comando `aptdata` emite **JSON estruturado** em todas as saídas, sendo ideal para uso com orquestradores de IA, esteiras de CI/CD e shell scripts.
 
 ---
 
 ## `aptdata run`
 
-Run a registered pipeline by name.
+Executa um sistema registrado pelo nome.
 
 ```
 aptdata run PIPELINE [OPTIONS]
 ```
 
-### Arguments
+### Argumentos
 
-| Name | Required | Description |
-|------|----------|-------------|
-| `PIPELINE` | ✅ | Pipeline identifier registered in the plugin registry |
+| Nome | Obrigatório | Descrição |
+|------|-------------|-----------|
+| `PIPELINE` | ✅ | Identificador do sistema registrado no plugin registry |
 
-### Options
+### Opções
 
-| Flag | Default | Description |
-|------|---------|-------------|
-| `--env`, `-e` | `dev` | Target execution environment label (e.g. `dev`, `staging`, `prod`) |
-| `--dry-run` | `false` | Compile and validate the pipeline without executing `run()` |
-| `--help` | | Show help and exit |
+| Flag | Default | Descrição |
+|------|---------|-----------|
+| `--env`, `-e` | `dev` | Variável de ambiente alvo da execução (ex: `dev`, `staging`, `prod`) |
+| `--dry-run` | `false` | Instancia componentes e compila fluxos, mas **não** dispara o `run()` |
+| `--help` | | Exibe ajuda e encerra |
 
-### Exit codes
+### Códigos de Saída (Exit Codes)
 
-| Code | Meaning |
-|------|---------|
-| `0` | Pipeline completed successfully |
-| `1` | An error occurred (pipeline not found, runtime exception, etc.) |
+| Código | Significado |
+|--------|-------------|
+| `0` | Sistema executado com sucesso |
+| `1` | Ocorreu um erro (sistema não encontrado, exceção de tempo de execução, etc.) |
 
-### JSON events
+### Eventos JSON
 
-**`pipeline.started`** – emitted immediately after the CLI receives the
-command:
+**`pipeline.started`** – emitido imediatamente após a CLI receber o comando:
 
 ```json
 {
@@ -49,7 +46,7 @@ command:
 }
 ```
 
-**`pipeline.completed`** – emitted when the pipeline finishes successfully:
+**`pipeline.completed`** – emitido quando o sistema finaliza com sucesso:
 
 ```json
 {
@@ -61,7 +58,7 @@ command:
 }
 ```
 
-**`pipeline.error`** – emitted to *stderr* when an error occurs:
+**`pipeline.error`** – emitido em *stderr* quando ocorre um erro:
 
 ```json
 {
@@ -73,19 +70,19 @@ command:
 }
 ```
 
-### Examples
+### Exemplos
 
 ```bash
-# Run in the default dev environment
+# Executa no ambiente default (dev)
 aptdata run my_pipeline
 
-# Run against production
+# Executa apontando para produção
 aptdata run my_pipeline --env prod
 
-# Validate without executing
+# Valida sem executar de fato
 aptdata run my_pipeline --dry-run
 
-# Capture and parse JSON output with jq
+# Captura e faz parse da saída JSON usando jq
 aptdata run my_pipeline | jq '.elapsed_seconds'
 ```
 
@@ -93,47 +90,45 @@ aptdata run my_pipeline | jq '.elapsed_seconds'
 
 ## `aptdata monitor`
 
-Launch the interactive TUI monitoring dashboard.
+Inicia o dashboard TUI (Text User Interface) interativo de monitoramento.
 
 ```
 aptdata monitor [OPTIONS]
 ```
 
-### Options
+### Opções
 
-| Flag | Default | Description |
-|------|---------|-------------|
-| `--refresh`, `-r` | `1.0` | Dashboard auto-refresh interval in seconds |
-| `--help` | | Show help and exit |
+| Flag | Default | Descrição |
+|------|---------|-----------|
+| `--refresh`, `-r` | `1.0` | Intervalo de auto-atualização do dashboard em segundos |
+| `--help` | | Exibe ajuda e encerra |
 
-### Key bindings
+### Atalhos de Teclado
 
-| Key | Action |
-|-----|--------|
-| `r` | Manually refresh all panels |
-| `q` / `Ctrl+C` | Quit |
+| Tecla | Ação |
+|-------|------|
+| `r` | Atualizar manualmente todos os painéis |
+| `q` / `Ctrl+C` | Sair |
 
-### Examples
+### Exemplos
 
 ```bash
-# Open with default 1-second refresh
+# Inicia com atualização a cada 1 segundo (default)
 aptdata monitor
 
-# Faster refresh for high-frequency pipelines
+# Atualização mais rápida para fluxos de alta frequência
 aptdata monitor --refresh 0.25
 ```
 
 ---
 
----
-
 ## `aptdata system`
 
-Inspect and validate registered systems.
+Inspeciona e valida sistemas registrados.
 
 ### `aptdata system list [--json]`
 
-List all systems in the plugin registry.
+Lista todos os sistemas no plugin registry.
 
 ```bash
 aptdata system list
@@ -142,7 +137,7 @@ aptdata system list --json
 
 ### `aptdata system info NAME [--json]`
 
-Show detailed info about a registered system (class name, module, docstring).
+Exibe informações detalhadas sobre um sistema registrado (nome da classe, módulo, docstring).
 
 ```bash
 aptdata system info my_pipeline
@@ -151,7 +146,7 @@ aptdata system info my_pipeline --json
 
 ### `aptdata system validate NAME`
 
-Instantiate the system and compile all its flows without executing.
+Instancia o sistema e compila todos os seus fluxos sem executar.
 
 ```bash
 aptdata system validate my_pipeline
@@ -161,11 +156,11 @@ aptdata system validate my_pipeline
 
 ## `aptdata plugin`
 
-Manage and inspect registered reader / writer plugins.
+Gerencia e inspeciona plugins registrados (conectores, leitores, escritores).
 
 ### `aptdata plugin list [--json]`
 
-List all registered readers and writers.
+Lista todos os conectores (plugins) registrados.
 
 ```bash
 aptdata plugin list
@@ -174,7 +169,7 @@ aptdata plugin list --json
 
 ### `aptdata plugin inspect NAME [--json]`
 
-Show constructor argument schema for a plugin.
+Exibe o schema de argumentos (construtor Pydantic) de um plugin.
 
 ```bash
 aptdata plugin inspect csv_reader
@@ -183,7 +178,7 @@ aptdata plugin inspect csv_reader --json
 
 ### `aptdata plugin preview READER [--limit N]`
 
-Execute a reader and display the first N records (default: 5).
+Executa um dataset/plugin leitor e exibe as primeiras *N* linhas reais (default: 5).
 
 ```bash
 aptdata plugin preview csv_reader --limit 10
@@ -191,7 +186,7 @@ aptdata plugin preview csv_reader --limit 10
 
 ### `aptdata plugin load MODULE_PATH`
 
-Dynamically import a Python module (for plugin discovery).
+Importa dinamicamente um módulo Python (útil para descoberta e registro de plugins manuais via CLI).
 
 ```bash
 aptdata plugin load my_package.plugins
@@ -201,11 +196,11 @@ aptdata plugin load my_package.plugins
 
 ## `aptdata config`
 
-Manage declarative YAML pipeline configurations.
+Gerencia configurações declarativas de pipeline em YAML.
 
 ### `aptdata config validate PATH`
 
-Parse and validate a YAML config file.
+Faz o *parse* e valida um arquivo de configuração YAML.
 
 ```bash
 aptdata config validate pipeline.yaml
@@ -213,7 +208,7 @@ aptdata config validate pipeline.yaml
 
 ### `aptdata config init [--output PATH]`
 
-Generate a starter YAML configuration template.
+Gera um *template* inicial de arquivo `aptdata.yaml`.
 
 ```bash
 aptdata config init
@@ -222,7 +217,7 @@ aptdata config init --output my_pipeline.yaml
 
 ### `aptdata config show PATH`
 
-Pretty-print a YAML config file with syntax highlighting.
+Exibe o arquivo YAML carregado com substituições de ambiente aplicadas e sintaxe destacada.
 
 ```bash
 aptdata config show pipeline.yaml
@@ -230,7 +225,7 @@ aptdata config show pipeline.yaml
 
 ### `aptdata config run PATH [--env ENV]`
 
-Parse a YAML config, register the system, and execute it.
+Carrega a configuração YAML, registra os sistemas ativados e os executa de acordo com o ambiente.
 
 ```bash
 aptdata config run pipeline.yaml
@@ -241,11 +236,11 @@ aptdata config run pipeline.yaml --env prod
 
 ## `aptdata telemetry`
 
-Inspect OpenTelemetry telemetry configuration.
+Inspeciona a configuração de telemetria baseada em OpenTelemetry.
 
 ### `aptdata telemetry status [--json]`
 
-Show whether OpenTelemetry is configured and the active tracer provider.
+Exibe o status da configuração do OpenTelemetry e qual o provedor de rastreamento (tracer) está ativo.
 
 ```bash
 aptdata telemetry status
@@ -254,7 +249,7 @@ aptdata telemetry status --json
 
 ### `aptdata telemetry export [--format json]`
 
-Export collected telemetry spans/metrics as JSON.
+Esvazia o buffer em memória e exporta rastreamentos/métricas coletadas para o *exporter* ativo (ou stdout via JSON).
 
 ```bash
 aptdata telemetry export
@@ -265,13 +260,13 @@ aptdata telemetry export --format json
 
 ## `aptdata interactive`
 
-Launch the guided interactive wizard.
+Inicia o assistente interativo guiado (Wizard Menu).
 
 ```bash
 aptdata interactive
 ```
 
-See [CLI Interactive Wizard](cli-interactive.md) for full documentation.
+Consulte [Assistente Interativo da CLI](cli-interactive.md) para documentação completa.
 
 ---
 

@@ -1,28 +1,29 @@
-# Plugins & Registry
+# Plugins e Registro
 
-The plugin registry lets external packages register concrete system
-implementations so the CLI can discover and instantiate them by name —
-without any changes to the `aptdata` core.
+O *plugin registry* global permite que pacotes e *engines* externas
+registrem implementações concretas de sistemas, possibilitando que a CLI os
+descubra e os instancie dinamicamente pelo nome — sem exigir nenhuma
+modificação ou hardcode no núcleo do `aptdata`.
 
 ---
 
-## How it works
+## Como Funciona
 
 ```mermaid
 sequenceDiagram
-    participant Pkg as Your adapter package
+    participant Pkg as Seu pacote de adaptação
     participant Reg as aptdata.plugins.registry
     participant CLI as aptdata CLI
 
     Pkg->>Reg: registry.register("my_system", MySystem)
     CLI->>Reg: registry.get("my_system")
-    Reg-->>CLI: MySystem class
-    CLI->>CLI: aptdata run my_system
+    Reg-->>CLI: Retorna a Classe MySystem
+    CLI->>CLI: Executa: aptdata run my_system
 ```
 
 ---
 
-## Registering a system
+## Registrando um Sistema
 
 ```python
 # my_package/systems.py
@@ -44,11 +45,11 @@ class SalesSystem(BaseSystem):
             flow.run([])
 
 
-# Register at import time so the CLI can find it
+# Registre globalmente no import para que a CLI possa localizar o artefato
 registry.register("sales_system", SalesSystem)
 ```
 
-Then run it:
+Após o registro, a execução torna-se transparente:
 
 ```bash
 aptdata run sales_system --env prod
@@ -56,28 +57,31 @@ aptdata run sales_system --env prod
 
 ---
 
-## Auto-discovery with entry points
+## Descoberta Automática (Auto-Discovery) com Entry Points
 
-You can auto-register systems when your package is installed by declaring a
-`aptdata.systems` entry-point group in your `pyproject.toml`:
+A integração mais escalável para bibliotecas é declarar um grupo de
+*entry-points* chamado `aptdata.systems` diretamente no `pyproject.toml`. Isso
+registra o plugin implicitamente no momento da instalação (`pip install`):
 
 ```toml
 [tool.poetry.plugins."aptdata.systems"]
 sales_system = "my_package.systems:SalesSystem"
 ```
 
-!!! note
-    Built-in entry-point auto-discovery is planned for a future release.
-    For now, call `registry.register()` explicitly at import time.
+!!! tip "Em Desenvolvimento"
+    A funcionalidade automática de leitura de entry-points embutida na
+    instalação estará disponível nos próximos releases. Por hora, invoque
+    explicitamente `registry.register()` no tempo de inicialização do seu
+    pacote.
 
 ---
 
-## `_SystemRegistry` API
+## API do `_SystemRegistry`
 
 ::: aptdata.plugins._SystemRegistry
 
 ---
 
-## Global singleton
+## Instância Singleton Global
 
 ::: aptdata.plugins.registry
