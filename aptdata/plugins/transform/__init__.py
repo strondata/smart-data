@@ -10,5 +10,6 @@ from __future__ import annotations
 
 from aptdata.plugins.transform.pandas import PandasTransformer
 from aptdata.plugins.transform.spark import PySparkTransformer
+from aptdata.plugins.transform.spark_executor import SparkExecutor
 
-__all__ = ["PandasTransformer", "PySparkTransformer"]
+__all__ = ["PandasTransformer", "PySparkTransformer", "SparkExecutor"]

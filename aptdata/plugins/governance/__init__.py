@@ -18,6 +18,7 @@ from aptdata.plugins.governance.rules import (
     RuleRegistry,
     RuleStatus,
 )
+from aptdata.plugins.governance.telemetry_listener import UDPTelemetryListener
 
 __all__ = [
     "DatasetCatalog",
@@ -29,4 +30,5 @@ __all__ = [
     "RuleAuditEntry",
     "RuleRegistry",
     "RuleStatus",
+    "UDPTelemetryListener",
 ]
