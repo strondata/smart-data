@@ -8,6 +8,7 @@ from pathlib import Path
 
 import typer
 
+from aptdata.cli.commands.lint_cmd import run_code_hygiene
 from aptdata.cli.rendering.console import SmartConsole
 
 mesh_app = typer.Typer(
@@ -348,6 +349,36 @@ def mesh_build(
         )
     else:
         console.success(f"Component [bold cyan]{component}[/] built successfully.")
+
+
+@mesh_app.command("lint")
+def mesh_lint(
+    deep: bool = typer.Option(
+        False, "--deep", help="Run semantic cross-referencing with documentation."
+    ),
+    json_mode: bool = typer.Option(False, "--json", help="Emit JSON lines."),
+) -> None:
+    """Run code hygiene checks (Ruff, Vulture, LLM docs check)."""
+    try:
+        run_code_hygiene(deep=deep, json_mode=json_mode)
+    except Exception as exc:
+        if json_mode:
+            print(json.dumps({"event": "code_hygiene.error", "error": str(exc)}), flush=True)
+        else:
+            console = SmartConsole(json_mode=False)
+            console.error(f"Failed to run code hygiene: {exc}")
+        raise typer.Exit(1) from exc
+
+
+@mesh_app.command("clean")
+def mesh_clean(
+    deep: bool = typer.Option(
+        False, "--deep", help="Run semantic cross-referencing with documentation."
+    ),
+    json_mode: bool = typer.Option(False, "--json", help="Emit JSON lines."),
+) -> None:
+    """Alias for 'mesh lint'."""
+    mesh_lint(deep=deep, json_mode=json_mode)
 
 
 # ---------------------------------------------------------------------------

@@ -1,0 +1,96 @@
+name: Code Hygiene & Tech Debt Reduction
+
+on:
+  schedule:
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+jobs:
+  hygiene:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install Poetry
+        run: pip install poetry
+
+      - name: Install Dependencies
+        run: poetry install --all-extras
+
+      - name: Configure Git User
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Create or Checkout clean branch
+        run: |
+          git fetch origin main
+          git checkout clean || git checkout -b clean
+          # Sync clean branch with the latest from main
+          git merge origin/main --strategy-option theirs --no-edit
+
+      - name: Run Code Hygiene
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          poetry run aptdata mesh clean --deep --json > hygiene_report.json
+          cat hygiene_report.json
+
+      - name: Commit Removals
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            git add .
+            git commit -m "chore(hygiene): remove dead code and unused imports"
+            git push origin clean --force
+            echo "CHANGES_MADE=true" >> $GITHUB_ENV
+          else
+            echo "No dead code found to remove."
+            echo "CHANGES_MADE=false" >> $GITHUB_ENV
+          fi
+
+      - name: Read Report Details
+        id: report
+        if: env.CHANGES_MADE == 'true'
+        run: |
+          REMOVED_COUNT=$(jq '.count' hygiene_report.json || echo "0")
+
+          # Formulate a markdown summary from the JSON output for the PR body
+          echo "### AST Dead Code Removals:" > summary.md
+          jq -r '.removed_items[]? | "- **\(.file):\(.line)**: \(.removed) (\(.reason))"' hygiene_report.json >> summary.md || echo "No explicit AST removals (e.g. only unused imports fixed)." >> summary.md
+
+      - name: Create or Update Pull Request
+        if: env.CHANGES_MADE == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_TITLE="chore(hygiene): daily code hygiene and tech debt reduction"
+
+          # Build body using the official template + our summary
+          cp .github/PULL_REQUEST_TEMPLATE.md pr_body.txt
+          echo -e "\n\n## Automated Hygiene Report\n" >> pr_body.txt
+          cat summary.md >> pr_body.txt
+
+          # Check if PR exists
+          PR_URL=$(gh pr list --base main --head clean --json url --jq '.[0].url')
+
+          if [ -z "$PR_URL" ]; then
+            gh pr create --base main --head clean \
+              --title "$PR_TITLE" \
+              --body-file pr_body.txt
+          else
+            gh pr edit $PR_URL \
+              --title "$PR_TITLE" \
+              --body-file pr_body.txt
+          fi

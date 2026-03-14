@@ -44,6 +44,9 @@ class _MockMCP:
         )
 
 
+from aptdata.cli.commands.lint_cmd import (
+    run_code_hygiene as _run_code_hygiene,  # noqa: E402
+)
 from aptdata.core.lineage import (  # noqa: E402
     LineageEventType,
     LineageGraph,
@@ -310,3 +313,24 @@ def get_pipeline_lineage(flow_id: str) -> dict[str, Any]:
     graph.add_node(node)
 
     return graph.to_dict()
+
+
+@mcp.tool()
+def run_code_hygiene(deep: bool = False) -> dict[str, Any]:
+    """Execute code hygiene tasks: unused imports and dead code removal.
+
+    Parameters
+    ----------
+    deep:
+        If True, run semantic cross-referencing with documentation.
+
+    Returns
+    -------
+    dict
+        A dictionary containing the report of removed items.
+    """
+    _mark_request()
+    try:
+        return _run_code_hygiene(deep=deep, json_mode=True)
+    except Exception as exc:  # noqa: BLE001
+        return {"event": "code_hygiene.error", "error": str(exc)}

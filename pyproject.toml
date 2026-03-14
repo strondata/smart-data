@@ -55,6 +55,7 @@ mkdocs-material = "^9.5"
 mkdocstrings = {extras = ["python"], version = "^0.25"}
 pytest-asyncio = "^1.3.0"
 bump-my-version = "^0.20.0"
+vulture = "^2.15"
 
 [tool.poetry.scripts]
 aptdata = "aptdata.cli.app:app"
