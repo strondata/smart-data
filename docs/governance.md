@@ -194,7 +194,10 @@ results = catalog.search(owner="data-engineering", tag="finance")
 
 ## Políticas de Classificação de Dados
 
-Definições formais sobre tempo de retenção, necessidade de criptografia e perfis de acesso baseados na sensibilidade da informação.
+!!! info "Definições formais da sensibilidade da informação"
+    - Tempo de retenção.
+    - Necessidade de criptografia.
+    - Perfis de acesso.
 
 ```python
 from aptdata.plugins.governance.classification import (

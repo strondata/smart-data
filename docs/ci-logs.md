@@ -1,10 +1,10 @@
 # Logs de Execução e CI/CD
 
-O **aptdata** foi arquitetado com automação e integração em mente.
+O **aptdata** foca em automação e integração nativa:
 
 - **Logs Estruturados:** Emissão em NDJSON (`--json`).
-- **Observabilidade:** Facilita a captura, *parsing* e ingestão direta em Data Lakes e ferramentas de monitoramento (ex: Datadog, ELK).
-- **Automação:** Ideal para esteiras de CI/CD.
+- **Observabilidade:** Ingestão direta em Data Lakes e ferramentas como Datadog e ELK.
+- **Automação:** Projetado para esteiras de CI/CD.
 
 ## Integração com GitHub Actions
 

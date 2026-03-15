@@ -61,21 +61,21 @@ Commands:
 
 ## Construindo seu Primeiro Sistema
 
-O fluxo lógico de orquestração do framework segue cinco etapas principais:
+!!! note "O fluxo lógico de orquestração:"
 
-```mermaid
-flowchart LR
-    %% Estilos Customizados (Design Premium)
-    classDef default fill:#0b132b,stroke:#ff6a00,stroke-width:1px,color:#fff,rx:8px,ry:8px;
+    ```mermaid
+    flowchart LR
+        %% Estilos Customizados (Design Premium)
+        classDef default fill:#0b132b,stroke:#ff6a00,stroke-width:1px,color:#fff,rx:8px,ry:8px;
 
-    DS["1️⃣ Dataset\nLeitura / Escrita (IDataset)"]
-    CO["2️⃣ Component\nTransformação (IComponent)"]
-    FL["3️⃣ Flow\nConexões Condicionais (IFlow)"]
-    SY["4️⃣ System\nOrquestrador Base (ISystem)"]
-    RG["5️⃣ Execução\nCLI ou Plugin Registry"]
+        DS["1️⃣ Dataset\nLeitura / Escrita (IDataset)"]
+        CO["2️⃣ Component\nTransformação (IComponent)"]
+        FL["3️⃣ Flow\nConexões Condicionais (IFlow)"]
+        SY["4️⃣ System\nOrquestrador Base (ISystem)"]
+        RG["5️⃣ Execução\nCLI ou Plugin Registry"]
 
-    DS --> CO --> FL --> SY --> RG
-```
+        DS --> CO --> FL --> SY --> RG
+    ```
 
 ### 1. Criar um Dataset
 Um Dataset implementa as operações de leitura e escrita através do contrato `IDataset`. Herdando de `BaseDataset`, você recebe injeção de estado e validação via Pydantic.

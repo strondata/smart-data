@@ -85,8 +85,8 @@ plugins:
             docstring_style: numpy
 
 nav:
-  - Home: index.md
   - Getting Started:
+      - Home: index.md
       - Overview: getting-started.md
       - Scaffold Templates: scaffold-templates.md
       - Configuration: configuration.md
@@ -101,16 +101,16 @@ nav:
   - Plugins:
       - Engines: transform-engines.md
       - MCP Server: mcp.md
+      - AI Docs:
+          - llms.txt: llms.txt
+          - llms-full.txt: llms-full.txt
+          - Docs Agent Prompts: prompts/docs-agent.md
   - API:
       - Core Reference: api/core.md
       - CLI: api/cli.md
       - CLI Interactive: api/cli-interactive.md
       - Plugins Reference: api/plugins.md
-  - Changelog: changelog.md
-  - AI Docs:
-      - llms.txt: llms.txt
-      - llms-full.txt: llms-full.txt
-      - Docs Agent Prompts: prompts/docs-agent.md
+      - Changelog: changelog.md
 
 markdown_extensions:
   - admonition

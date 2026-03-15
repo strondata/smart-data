@@ -1,6 +1,11 @@
 # Servidor MCP (Integração IA)
 
-O `aptdata` inclui um servidor [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) embutido. Ele transforma agentes de IA (como Claude Desktop, Copilot, Devin) em Engenheiros de Dados autônomos. Em vez de apenas gerar código estático, a IA consegue descobrir conexões, auditar contratos de schema e executar pipelines diretamente contra sua infraestrutura, sem estourar o limite de *tokens* de contexto.
+O `aptdata` possui um servidor [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) nativo, transformando IAs (Claude, Copilot, Devin) em agentes autônomos.
+
+Vantagens:
+- **Execução Real:** A IA executa pipelines e descobre conexões, não apenas gera código.
+- **Auditoria:** Consulta contratos de schema.
+- **Eficiência:** Evita o estouro de *tokens* de contexto.
 
 ---
 
