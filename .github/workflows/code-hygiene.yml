@@ -1,0 +1,76 @@
+name: "CHORE-002: Continuous Code Hygiene"
+on:
+  schedule:
+    - cron: '0 2 * * *' # Daily at 2 AM
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  hygiene:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          ref: 'main'
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install poetry
+          poetry install --all-extras
+          pip install -e .
+
+      - name: Configure Git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Sync clean branch
+        run: |
+          git checkout -B clean
+          git merge origin/main --no-edit || true
+
+      - name: Run Code Hygiene
+        run: |
+          aptdata mesh clean --deep --json > hygiene_report.jsonl
+          cat hygiene_report.jsonl
+
+      - name: Generate PR Body
+        run: |
+          cat .github/PULL_REQUEST_TEMPLATE.md > pr_body.txt
+          echo -e "\n\n## Autonomous Code Hygiene Report\n\n" >> pr_body.txt
+          cat hygiene_report.md >> pr_body.txt || echo "No hygiene report generated." >> pr_body.txt
+
+      - name: Commit and Push
+        run: |
+          git add .
+          if ! git diff-index --quiet HEAD; then
+            git commit -m "chore(hygiene): autonomous code cleanup"
+            git push origin clean -f
+          fi
+
+      - name: Create or Update Pull Request
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Fetch origin/clean so we can see if it differs from origin/main
+          git fetch origin clean || true
+
+          if ! git diff --quiet origin/main..clean; then
+            gh pr create \
+              --base main \
+              --head clean \
+              --title "🧹 chore: Autonomous Code Hygiene" \
+              --body-file pr_body.txt || gh pr edit clean \
+              --title "🧹 chore: Autonomous Code Hygiene" \
+              --body-file pr_body.txt
+          fi

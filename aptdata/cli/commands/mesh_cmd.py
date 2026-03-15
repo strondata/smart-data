@@ -427,3 +427,97 @@ def _build_docker_compose(component: str, comp_dir: Path) -> None:
             f"Docker Compose build for '{component}' failed"
             f" with code {result.returncode}."
         )
+
+@mesh_app.command("clean")
+def mesh_clean(
+    directory: Path = typer.Option(
+        Path("."),
+        "--dir",
+        "-d",
+        help="Base directory to search for code to clean.",
+        exists=True,
+        resolve_path=True,
+    ),
+    deep: bool = typer.Option(
+        False, "--deep", help="Run semantic analysis along with static analysis."
+    ),
+    json_mode: bool = typer.Option(False, "--json", help="Emit JSON lines."),
+) -> None:
+    """Run code hygiene checks (vulture, ruff) and optionally semantic analysis."""
+    console = SmartConsole(json_mode=json_mode)
+    root = directory.resolve()
+
+    if json_mode:
+        print(
+            json.dumps(
+                {
+                    "event": "mesh.clean.started",
+                    "directory": str(root),
+                    "deep": deep,
+                }
+            ),
+            flush=True,
+        )
+    else:
+        console.info(f"Running code hygiene in [bold cyan]{root}[/] (deep: {deep})")
+
+    # First pass: Auto-fix using ruff
+    cmd_ruff_fix = ["ruff", "check", "--fix", str(root)]
+    subprocess.run(cmd_ruff_fix, capture_output=True, text=True, check=False) # noqa: S603
+
+    # Second pass: Check for remaining issues
+    cmd_ruff = ["ruff", "check", str(root)]
+    cmd_vulture = ["vulture", str(root)]
+
+    ruff_result = subprocess.run(
+        cmd_ruff, capture_output=True, text=True, check=False  # noqa: S603
+    )
+    vulture_result = subprocess.run(
+        cmd_vulture, capture_output=True, text=True, check=False  # noqa: S603
+    )
+
+    semantic_report = ""
+    if deep:
+        # Import the LLM Agent for semantic analysis
+        try:
+            from aptdata.plugins.qa.llm_agent import SemanticQAAgent
+            agent = SemanticQAAgent(root)
+            semantic_report = agent.run_analysis()
+            if not json_mode:
+                console.info("Running deep semantic analysis via LLM...")
+        except ImportError:
+            if not json_mode:
+                console.warning("SemanticQAAgent not found or could not be loaded. Skipping deep analysis.")
+
+    # Save report for GitHub Actions to pick up and inject into PR body
+    report_content = f"### Static Analysis (Ruff)\n```\n{ruff_result.stdout}\n```\n\n### Dead Code Analysis (Vulture)\n```\n{vulture_result.stdout}\n```"
+    if deep:
+        report_content += f"\n\n### Semantic Analysis (LLM)\n```\n{semantic_report}\n```"
+
+    try:
+        with open("hygiene_report.md", "w") as f:
+            f.write(report_content)
+    except Exception: # noqa: BLE001
+        pass
+
+    if json_mode:
+        print(
+            json.dumps(
+                {
+                    "event": "mesh.clean.completed",
+                    "directory": str(root),
+                    "ruff_output": ruff_result.stdout,
+                    "vulture_output": vulture_result.stdout,
+                    "semantic_output": semantic_report,
+                }
+            ),
+            flush=True,
+        )
+    else:
+        console.info("Code hygiene completed.")
+        if ruff_result.stdout:
+            console.info(ruff_result.stdout)
+        if vulture_result.stdout:
+            console.info(vulture_result.stdout)
+        if deep and semantic_report:
+            console.info(semantic_report)
