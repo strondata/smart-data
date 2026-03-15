@@ -350,6 +350,100 @@ def mesh_build(
         console.success(f"Component [bold cyan]{component}[/] built successfully.")
 
 
+@mesh_app.command("lint")
+def mesh_lint(
+    deep: bool = typer.Option(
+        False, "--deep", help="Run deeper analysis (mypy, pydocstyle)."
+    ),
+    json_mode: bool = typer.Option(False, "--json", help="Emit JSON lines."),
+) -> None:
+    """Run QA and DX checks on the repository.
+
+    Audits interfaces, architecture, and docstrings.
+    Generates a QAReport and optionally emits JSON logs.
+
+    Examples
+    --------
+    aptdata mesh lint
+    aptdata mesh lint --deep --json
+    """
+    console = SmartConsole(json_mode=json_mode)
+
+    if json_mode:
+        print(
+            json.dumps({"event": "mesh.lint.started", "deep": deep}),
+            flush=True,
+        )
+    else:
+        console.info(f"Starting QAAgent analysis (deep={deep})...")
+
+    from aptdata.agents.qa_agent import QAAgent
+
+    agent = QAAgent()
+    try:
+        report = agent.analyze(deep=deep)
+
+        if json_mode:
+            print(
+                json.dumps(
+                    {
+                        "event": "mesh.lint.completed",
+                        "report": report.to_dict(),
+                    }
+                ),
+                flush=True,
+            )
+        else:
+            if report.architectural_violations:
+                console.warning(
+                    f"Found {len(report.architectural_violations)} architectural violations:"
+                )
+                for v in report.architectural_violations:
+                    console.warning(f"  - {v}")
+
+            if report.orphaned_commands:
+                console.warning(
+                    f"Found {len(report.orphaned_commands)} orphaned Makefile targets:"
+                )
+                for o in report.orphaned_commands:
+                    console.warning(f"  - {o}")
+
+            console.success(
+                f"QA Analysis complete. Repo Health: {report.score_repo_health:.1f}/100"
+            )
+
+        if report.architectural_violations:
+             raise typer.Exit(1)
+
+    except Exception as exc:  # noqa: BLE001
+        if json_mode:
+            print(
+                json.dumps(
+                    {
+                        "event": "mesh.lint.error",
+                        "error": str(exc),
+                    }
+                ),
+                flush=True,
+            )
+        else:
+            console.error(f"Linting failed: {exc}")
+        raise typer.Exit(1) from exc
+
+@mesh_app.command("clean")
+def mesh_clean(
+    deep: bool = typer.Option(
+        False, "--deep", help="Run deeper analysis (mypy, pydocstyle)."
+    ),
+    json_mode: bool = typer.Option(False, "--json", help="Emit JSON lines."),
+) -> None:
+    """Legacy command. Redirects to 'mesh lint'."""
+    console = SmartConsole(json_mode=json_mode)
+    if not json_mode:
+        console.info("Command 'clean' is deprecated. Running 'lint' instead.")
+    mesh_lint(deep=deep, json_mode=json_mode)
+
+
 # ---------------------------------------------------------------------------
 # Internal helpers
 # ---------------------------------------------------------------------------

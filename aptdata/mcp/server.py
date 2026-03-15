@@ -310,3 +310,36 @@ def get_pipeline_lineage(flow_id: str) -> dict[str, Any]:
     graph.add_node(node)
 
     return graph.to_dict()
+
+
+@mcp.tool()
+def run_code_hygiene(deep: bool = False) -> dict[str, Any]:
+    """Run code hygiene and DX checks on the repository using the QA Agent.
+
+    Parameters
+    ----------
+    deep:
+        If True, run deeper static analysis (mypy, pydocstyle) in addition
+        to ruff, architecture checks, and interface consistency audits.
+
+    Returns
+    -------
+    dict
+        A JSON dictionary containing the QA Report.
+    """
+    _mark_request()
+
+    from aptdata.agents.qa_agent import QAAgent
+    agent = QAAgent()
+
+    try:
+        report = agent.analyze(deep=deep)
+        return {
+            "status": "success",
+            "report": report.to_dict()
+        }
+    except Exception as exc:  # noqa: BLE001
+        return {
+            "status": "error",
+            "error": str(exc),
+        }
