@@ -1,0 +1,67 @@
+name: PR Code Review (QA/DX)
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  qa-dx-review:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install poetry
+          poetry install --all-extras
+          poetry add ruff mypy pydocstyle pytest
+
+      - name: Run aptdata mesh lint --deep
+        run: poetry run aptdata mesh lint --deep --json > qa_report.json
+        continue-on-error: true
+
+      - name: Process QA Report and Comment on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            if (fs.existsSync('qa_report.json')) {
+              const reportContent = fs.readFileSync('qa_report.json', 'utf8');
+              const lines = reportContent.trim().split('\n');
+              let criticalFailures = false;
+              let comments = "### QA/DX Code Review Report\n\n";
+
+              lines.forEach(line => {
+                try {
+                  const entry = JSON.parse(line);
+                  if (entry.event === 'lint.error') {
+                    comments += `- **${entry.type || 'Error'}** in \`${entry.file || 'Unknown'}\`: ${entry.message}\n`;
+                    if (entry.critical) criticalFailures = true;
+                  }
+                } catch (e) {
+                  console.error("Failed to parse log line:", line);
+                }
+              });
+
+              if (comments !== "### QA/DX Code Review Report\n\n") {
+                github.rest.issues.createComment({
+                  issue_number: context.issue.number,
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  body: comments
+                });
+              }
+
+              if (criticalFailures) {
+                core.setFailed("Critical architectural violations detected (e.g., Pandas in Core).");
+              }
+            }

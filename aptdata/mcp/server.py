@@ -310,3 +310,49 @@ def get_pipeline_lineage(flow_id: str) -> dict[str, Any]:
     graph.add_node(node)
 
     return graph.to_dict()
+
+@mcp.tool()
+def run_code_hygiene(
+    directory: str = ".",
+    deep: bool = False
+) -> dict[str, Any]:
+    """Run code hygiene checks (QA/DX) on the project.
+
+    This calls the 'aptdata mesh lint' command.
+    """
+    _mark_request()
+    import subprocess
+    import json
+
+    try:
+        cmd = ["aptdata", "mesh", "lint", "--dir", directory, "--json"]
+        if deep:
+            cmd.insert(-1, "--deep")
+
+        result = subprocess.run(
+            cmd,
+            check=False,
+            capture_output=True,
+            text=True
+        )
+
+        # Parse output line by line as JSON
+        events = []
+        for line in result.stdout.strip().split("\n"):
+            if line:
+                try:
+                    events.append(json.loads(line))
+                except json.JSONDecodeError:
+                    pass
+
+        return {
+            "status": "success" if result.returncode == 0 else "failure",
+            "events": events,
+            "stdout": result.stdout,
+            "stderr": result.stderr
+        }
+    except Exception as exc:  # noqa: BLE001
+        return {
+            "status": "error",
+            "error": str(exc)
+        }

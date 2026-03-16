@@ -247,6 +247,187 @@ def mesh_run(
         console.success(f"Component [bold cyan]{component}[/] finished successfully.")
 
 
+@mesh_app.command("lint")
+def mesh_lint(
+    directory: Path = typer.Option(
+        Path("."),
+        "--dir",
+        "-d",
+        help="Base directory to search for the component.",
+        exists=False,
+        resolve_path=True,
+    ),
+    deep: bool = typer.Option(False, "--deep", help="Run deep analysis (mypy, pydocstyle)."),
+    json_mode: bool = typer.Option(False, "--json", help="Emit JSON lines."),
+) -> None:
+    """Run QA/DX linting on the mesh project.
+
+    Checks code formatting (Ruff), docstrings (pydocstyle), and static types (mypy).
+
+    Examples
+    --------
+    aptdata mesh lint
+    aptdata mesh lint --deep
+    aptdata mesh lint --json
+    """
+    console = SmartConsole(json_mode=json_mode)
+    root = directory.resolve()
+
+    if json_mode:
+        print(
+            json.dumps(
+                {
+                    "event": "mesh.lint.started",
+                    "directory": str(root),
+                    "deep": deep,
+                }
+            ),
+            flush=True,
+        )
+    else:
+        console.info(f"Running QA/DX Linting in {root} (deep={deep})")
+
+    has_errors = False
+
+    # 1. Run Ruff (always)
+    try:
+        subprocess.run(
+            ["ruff", "check", str(root)],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+    except subprocess.CalledProcessError as exc:
+        has_errors = True
+        if json_mode:
+            print(
+                json.dumps(
+                    {
+                        "event": "lint.error",
+                        "type": "ruff",
+                        "message": exc.stdout.strip() or exc.stderr.strip() or "Ruff failed.",
+                        "critical": False,
+                        "file": str(root)
+                    }
+                ),
+                flush=True,
+            )
+        else:
+            console.error(f"Ruff failed:\n{exc.stdout or exc.stderr}")
+    except FileNotFoundError:
+        console.warning("ruff not installed. Skipping Ruff check.")
+
+    if deep:
+        # 2. Run Mypy
+        try:
+            subprocess.run(
+                ["mypy", str(root)],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+        except subprocess.CalledProcessError as exc:
+            has_errors = True
+            if json_mode:
+                print(
+                    json.dumps(
+                        {
+                            "event": "lint.error",
+                            "type": "mypy",
+                            "message": exc.stdout.strip() or exc.stderr.strip() or "Mypy failed.",
+                            "critical": False,
+                            "file": str(root)
+                        }
+                    ),
+                    flush=True,
+                )
+            else:
+                console.error(f"Mypy failed:\n{exc.stdout or exc.stderr}")
+        except FileNotFoundError:
+            console.warning("mypy not installed. Skipping Mypy check.")
+
+        # 3. Run pydocstyle
+        try:
+            subprocess.run(
+                ["pydocstyle", str(root)],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+        except subprocess.CalledProcessError as exc:
+            has_errors = True
+            if json_mode:
+                print(
+                    json.dumps(
+                        {
+                            "event": "lint.error",
+                            "type": "pydocstyle",
+                            "message": exc.stdout.strip() or exc.stderr.strip() or "pydocstyle failed.",
+                            "critical": False,
+                            "file": str(root)
+                        }
+                    ),
+                    flush=True,
+                )
+            else:
+                console.error(f"pydocstyle failed:\n{exc.stdout or exc.stderr}")
+        except FileNotFoundError:
+            console.warning("pydocstyle not installed. Skipping pydocstyle check.")
+
+        # 4. Integrate QAAgent for Semantic Checks & Coverage mapping
+        try:
+            from aptdata.agents.qa_agent import QAAgent
+            qa = QAAgent(directory=root)
+            # Find all new/changed tracked Python files against main branch
+            changed_files = []
+            try:
+                git_diff = subprocess.run(
+                    ["git", "diff", "--name-only", "main"],
+                    check=False,
+                    capture_output=True,
+                    text=True
+                )
+                if git_diff.returncode == 0:
+                    changed_files = [
+                        line.strip()
+                        for line in git_diff.stdout.splitlines()
+                        if line.strip().endswith(".py")
+                    ]
+            except FileNotFoundError:
+                pass
+
+            qa.check_test_coverage(changed_files)
+            findings = qa.run_all()
+            if findings:
+                has_errors = True
+                if json_mode:
+                    for f in findings:
+                        print(json.dumps(f), flush=True)
+                else:
+                    console.warning(f"QA Agent found {len(findings)} semantic issues.")
+        except ImportError:
+            pass
+
+    if json_mode:
+        print(
+            json.dumps(
+                {
+                    "event": "mesh.lint.completed",
+                    "directory": str(root),
+                    "errors": has_errors,
+                }
+            ),
+            flush=True,
+        )
+    else:
+        if has_errors:
+            console.warning("QA/DX Linting completed with warnings/errors.")
+        else:
+            console.success("QA/DX Linting completed successfully.")
+
+    if has_errors:
+        raise typer.Exit(1)
+
 @mesh_app.command("build")
 def mesh_build(
     component: str = typer.Argument(
