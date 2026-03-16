@@ -350,6 +350,73 @@ def mesh_build(
         console.success(f"Component [bold cyan]{component}[/] built successfully.")
 
 
+@mesh_app.command("clean")
+def mesh_clean(
+    directory: Path = typer.Option(
+        Path("."),
+        "--dir",
+        "-d",
+        help="Base directory to search for code to clean.",
+        exists=True,
+        resolve_path=True,
+    ),
+    dry_run: bool = typer.Option(
+        False, "--dry-run", help="Show what would run without executing."
+    ),
+    deep: bool = typer.Option(
+        False, "--deep", help="Run a deep semantic analysis (requires LLM)."
+    ),
+    json_mode: bool = typer.Option(False, "--json", help="Emit JSON lines."),
+) -> None:
+    """Run continuous code hygiene.
+
+    Orchestrates native tools (ruff, vulture) and semantic checks to find and
+    remove dead code.
+
+    Examples
+    --------
+    aptdata mesh clean
+    aptdata mesh clean --deep --json
+    """
+    console = SmartConsole(json_mode=json_mode)
+
+    try:
+        from aptdata.agents.qa import QAAgent
+    except ImportError as exc:
+        msg = "QAAgent could not be imported. Ensure agents are available."
+        if json_mode:
+            print(json.dumps({"event": "mesh.clean.error", "error": msg}))
+        else:
+            console.error(msg)
+        raise typer.Exit(1) from exc
+
+    if not json_mode:
+        console.info(f"Running code hygiene on '{directory}' (deep={deep})")
+
+    agent = QAAgent(root_dir=directory)
+    try:
+        report = agent.run(dry_run=dry_run, deep=deep)
+        if json_mode:
+            print(report.to_json(), flush=True)
+        else:
+            console.success("Code hygiene completed successfully.")
+            if report.items_removed:
+                console.info(f"Removed {len(report.items_removed)} items.")
+            if report.semantic_deviations:
+                console.warning(f"Found {len(report.semantic_deviations)} semantic deviations.")
+    except Exception as exc:  # noqa: BLE001
+        if json_mode:
+            print(
+                json.dumps(
+                    {"event": "mesh.clean.error", "error": str(exc)}
+                ),
+                flush=True,
+            )
+        else:
+            console.error(f"Failed to run code hygiene: {exc}")
+        raise typer.Exit(1) from exc
+
+
 # ---------------------------------------------------------------------------
 # Internal helpers
 # ---------------------------------------------------------------------------

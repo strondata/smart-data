@@ -310,3 +310,24 @@ def get_pipeline_lineage(flow_id: str) -> dict[str, Any]:
     graph.add_node(node)
 
     return graph.to_dict()
+
+
+@mcp.tool()
+def run_code_hygiene() -> dict[str, Any]:
+    """Run the QAAgent to clean dead code and fix formatting."""
+    _mark_request()
+    try:
+        from aptdata.agents.qa import QAAgent
+    except ImportError as exc:
+        return {"status": "error", "error": "QAAgent could not be imported."}
+
+    agent = QAAgent()
+    try:
+        report = agent.run(deep=True)
+        return {
+            "status": "success",
+            "items_removed": report.items_removed,
+            "semantic_deviations": report.semantic_deviations,
+        }
+    except Exception as exc:  # noqa: BLE001
+        return {"status": "error", "error": str(exc)}
