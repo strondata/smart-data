@@ -102,12 +102,17 @@ class MemoryDataset(BaseDataset): # (1)!
 2. O método `__post_init__` é o local ideal para definir propriedades mutáveis ou privadas que não devem ser validadas como input do construtor.
 3. O método `read()` é onde a lógica de extração real (ex: chamar a API do Pandas ou do Spark) acontece.
 
+!!! tip "Uso Prático"
+    No dia-a-dia, você não precisa recriar datasets em memória. Basta usar a classe core pronta:
+    `from aptdata.plugins.dataset import InMemoryDataset`.
+
 ### 2. Criar um Componente
 Um Componente (implementa `IComponent`) recebe uma lista de *inputs* validados, os processa, e retorna uma lista de *outputs* (permitindo múltiplas saídas ou fluxos paralelos).
 
 ```python
 from pydantic.dataclasses import dataclass as pydantic_dataclass
 from aptdata.core import BaseComponent, ComponentMeta, ComponentKind, IDataset
+from aptdata.plugins.dataset import InMemoryDataset
 
 @pydantic_dataclass
 class DoubleComponent(BaseComponent):
@@ -118,7 +123,7 @@ class DoubleComponent(BaseComponent):
 
     def execute(self, inputs: list[IDataset]) -> list[IDataset]:
         data = inputs[0].read()
-        out = MemoryDataset(uri="memory://output")
+        out = InMemoryDataset(uri="memory://output")
         out.write([x * 2 for x in data])
         return [out]
 
@@ -178,6 +183,8 @@ from pydantic.dataclasses import dataclass as pydantic_dataclass
 from aptdata.core import BaseSystem, IFlow
 from aptdata.plugins import registry
 
+from aptdata.plugins.dataset import InMemoryDataset
+
 @pydantic_dataclass
 class MySystem(BaseSystem):
     def __post_init__(self) -> None:
@@ -187,7 +194,7 @@ class MySystem(BaseSystem):
         self._flows.append(flow)
 
     def run(self) -> None:
-        ds = MemoryDataset(uri="memory://input")
+        ds = InMemoryDataset(uri="memory://input")
         ds.write([1, 2, 3])
         inputs = [ds]
         for flow in self._flows:
