@@ -1,0 +1,120 @@
+name: PR Code Review (QA/DX)
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  qa_dx_review:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install poetry
+          poetry install
+
+      - name: Configure Git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Get changed files
+        id: changed-files
+        run: |
+          # Get list of changed files separated by comma
+          FILES=$(git diff --name-only origin/main...HEAD | tr '\n' ',' | sed 's/,$//')
+          echo "files=$FILES" >> $GITHUB_OUTPUT
+
+      - name: Run aptdata mesh lint
+        env:
+          CHANGED_FILES: ${{ steps.changed-files.outputs.files }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Captures output of lint into JSON report.
+          # We use continue-on-error so we can handle the failure in JS gracefully.
+          poetry run aptdata mesh lint --deep --json --changed-files "$CHANGED_FILES" > qa_report.json
+        continue-on-error: true
+
+      - name: Post PR Comment and Enforce Quality
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            if (fs.existsSync('qa_report.json')) {
+              let rawReport = fs.readFileSync('qa_report.json', 'utf8');
+
+              // Handle multiple JSON lines potentially emitted by Typer/smart-console
+              const lines = rawReport.split('\n').filter(l => l.trim().length > 0);
+              let report = null;
+              for (const line of lines) {
+                try {
+                  const parsed = JSON.parse(line);
+                  if (parsed.event === 'qa.report') {
+                    report = parsed;
+                    break;
+                  }
+                } catch (e) {
+                  continue;
+                }
+              }
+
+              if (!report) {
+                 core.setFailed('Could not parse JSON output from qa.report');
+                 return;
+              }
+
+              let body = "## 🛡️ QA/DX Code Hygiene Report\n\n";
+
+              if (report.overall_status === 'success') {
+                 body += "**Status:** ✅ Passed\n";
+              } else if (report.overall_status === 'failed_stylistic') {
+                 body += "**Status:** ⚠️ Stylistic Warnings (Non-blocking, auto-fix PR will be suggested)\n";
+              } else {
+                 body += "**Status:** ❌ Failed Critical (Architectural Violations)\n";
+              }
+
+              body += `**Maintainability:** ${report.metrics.maintainability_score}\n`;
+              body += `**Docstring Coverage:** ${report.metrics.docstring_coverage_pct}%\n\n`;
+
+              if (report.critical_errors && report.critical_errors.length > 0) {
+                 body += "### 🛑 Critical Architectural Errors\n";
+                 report.critical_errors.forEach(err => {
+                    body += `- ${err}\n`;
+                 });
+                 body += "\n";
+              }
+
+              if (report.warnings && report.warnings.length > 0) {
+                 body += "### ⚠️ Warnings & Improvements\n";
+                 report.warnings.forEach(w => {
+                    body += `- ${w}\n`;
+                 });
+              }
+
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: body
+              });
+
+              if (report.overall_status === 'failed_critical') {
+                core.setFailed('Code hygiene failed due to critical architectural violations.');
+              }
+            } else {
+              core.setFailed('No QA report found.');
+            }

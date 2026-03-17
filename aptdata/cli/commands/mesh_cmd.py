@@ -5,10 +5,12 @@ from __future__ import annotations
 import json
 import subprocess
 from pathlib import Path
+from typing import Optional
 
 import typer
 
 from aptdata.cli.rendering.console import SmartConsole
+from aptdata.agents.qa_agent import QAAgent
 
 mesh_app = typer.Typer(
     name="mesh", help="Orchestrate mesh components (job-wheel, docker-compose-app, …)."
@@ -348,6 +350,61 @@ def mesh_build(
         )
     else:
         console.success(f"Component [bold cyan]{component}[/] built successfully.")
+
+
+@mesh_app.command("lint")
+def mesh_lint(
+    deep: bool = typer.Option(
+        False, "--deep", help="Enable deep semantic analysis (e.g., using LLMs)."
+    ),
+    changed_files: Optional[str] = typer.Option(
+        None, "--changed-files", help="Comma-separated list of changed files for PR context."
+    ),
+    json_mode: bool = typer.Option(False, "--json", help="Emit JSON lines report."),
+) -> None:
+    """Run continuous QA/DX code hygiene analysis.
+
+    Uses QAAgent to audit interfaces, docstrings, CLI/Makefile consistency,
+    and runs fast static analysis tools (ruff, mypy, pydocstyle).
+
+    Examples
+    --------
+    aptdata mesh lint
+    aptdata mesh lint --deep --json
+    aptdata mesh lint --changed-files aptdata/core/base.py,tests/test_base.py
+    """
+    console = SmartConsole(json_mode=json_mode)
+    if not json_mode:
+        console.info("Starting QA/DX code hygiene analysis...")
+
+    agent = QAAgent()
+
+    pr_changed_files = None
+    if changed_files:
+        pr_changed_files = [f.strip() for f in changed_files.split(",") if f.strip()]
+
+    report = agent.run_all_checks(deep=deep, pr_changed_files=pr_changed_files)
+
+    if json_mode:
+        print(json.dumps(report), flush=True)
+    else:
+        if report["overall_status"] == "success":
+            console.success("QA/DX code hygiene analysis passed successfully.")
+        elif report["overall_status"] == "failed_stylistic":
+            console.warning("QA/DX analysis finished with stylistic warnings. A PR will be generated.")
+            for tool, results in report["static_analysis"]["tools"].items():
+                if isinstance(results, dict) and results.get("returncode", 0) != 0:
+                    console.warning(f"{tool} had stylistic warnings:")
+                    out = results.get("output", "")
+                    if out:
+                        print(out[:500] + "\n...[truncated]")
+        elif report["overall_status"] == "failed_critical":
+            console.error("QA/DX code hygiene analysis failed with CRITICAL architectural violations.")
+            for err in report.get("critical_errors", []):
+                console.error(f"- {err}")
+
+    if report["overall_status"] == "failed_critical":
+        raise typer.Exit(1)
 
 
 # ---------------------------------------------------------------------------
