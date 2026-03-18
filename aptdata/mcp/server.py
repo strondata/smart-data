@@ -61,6 +61,7 @@ from aptdata.plugins.local_fs import (  # noqa: E402
 )
 from aptdata.plugins.manager import plugin_manager  # noqa: E402
 from aptdata.plugins.postgres import PostgresReader, PostgresWriter  # noqa: E402
+from aptdata.plugins.qa.agent import QAAgent  # noqa: E402
 from aptdata.plugins.quality.report import (  # noqa: E402
     CheckResult,
     CheckStatus,
@@ -310,3 +311,11 @@ def get_pipeline_lineage(flow_id: str) -> dict[str, Any]:
     graph.add_node(node)
 
     return graph.to_dict()
+
+
+@mcp.tool()
+def run_code_hygiene() -> dict[str, Any]:
+    """Run code hygiene checks via QAAgent to detect code smells and bugs early."""
+    _mark_request()
+    agent = QAAgent()
+    return agent.lint(deep=True)

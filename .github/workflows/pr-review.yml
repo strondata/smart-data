@@ -1,0 +1,87 @@
+name: PR Code Review (QA/DX)
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install Poetry
+        run: pip install poetry==1.7.1
+
+      - name: Install dependencies
+        run: poetry install
+
+      - name: Get changed files
+        id: changed-files
+        run: |
+          # Getting the list of changed files in this PR
+          FILES=$(git diff --name-only origin/main | grep '\.py$' || true)
+          # Convert to comma separated list
+          FILES_CSV=$(echo "$FILES" | paste -sd "," -)
+          echo "files=$FILES_CSV" >> $GITHUB_OUTPUT
+
+      - name: Run QAAgent code hygiene
+        id: lint
+        run: |
+          if [ -n "${{ steps.changed-files.outputs.files }}" ]; then
+            poetry run aptdata mesh lint --deep --json --changed-files="${{ steps.changed-files.outputs.files }}" > /tmp/report.jsonl || true
+            echo "Ran mesh lint"
+          else
+            echo "No python files changed."
+          fi
+
+      - name: Analyze Report and Comment
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ ! -f /tmp/report.jsonl ]; then
+            echo "No report generated."
+            exit 0
+          fi
+
+          # Very basic checking of the report using jq
+          CRITICAL=$(cat /tmp/report.jsonl | jq '.metrics.critical_issues')
+          WARNINGS=$(cat /tmp/report.jsonl | jq '.metrics.warnings')
+          STATUS=$(cat /tmp/report.jsonl | jq -r '.status')
+
+          COMMENT="### 🤖 QAAgent Review\n\n- **Status:** $STATUS\n- **Critical Issues:** $CRITICAL\n- **Warnings:** $WARNINGS\n\n"
+
+          if [ "$CRITICAL" -gt 0 ]; then
+            COMMENT="$COMMENT\n**🚨 Critical Architectural Violations Found!** Please fix them to proceed."
+          fi
+
+          # Identify if there are test or complexity warnings
+          HAS_COMPLEXITY=$(cat /tmp/report.jsonl | jq '.findings | map(select(.tool == "complexity")) | length')
+          HAS_MISSING_TESTS=$(cat /tmp/report.jsonl | jq '.findings | map(select(.code == "TEST001")) | length')
+
+          if [ "$HAS_COMPLEXITY" -gt 0 ]; then
+            COMMENT="$COMMENT\n- ⚠️ **Cyclomatic Complexity:** High complexity detected in modified files."
+          fi
+          if [ "$HAS_MISSING_TESTS" -gt 0 ]; then
+            COMMENT="$COMMENT\n- ⚠️ **Missing Tests:** Some modified files lack corresponding unit tests."
+          fi
+
+          # Post the comment using gh cli
+          gh pr comment ${{ github.event.pull_request.number }} -b "$COMMENT"
+
+          if [ "$STATUS" == "failed" ]; then
+            echo "Failing the workflow due to critical architectural violations."
+            exit 1
+          fi

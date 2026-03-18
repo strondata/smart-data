@@ -9,6 +9,7 @@ from pathlib import Path
 import typer
 
 from aptdata.cli.rendering.console import SmartConsole
+from aptdata.plugins.qa.agent import QAAgent
 
 mesh_app = typer.Typer(
     name="mesh", help="Orchestrate mesh components (job-wheel, docker-compose-app, …)."
@@ -245,6 +246,77 @@ def mesh_run(
         )
     else:
         console.success(f"Component [bold cyan]{component}[/] finished successfully.")
+
+
+@mesh_app.command("lint")
+def mesh_lint(
+    directory: Path = typer.Option(
+        Path("."),
+        "--dir",
+        "-d",
+        help="Base directory to run linting.",
+        exists=True,
+        resolve_path=True,
+    ),
+    deep: bool = typer.Option(
+        False, "--deep", help="Run deeper analysis like mypy and architectural rules."
+    ),
+    changed_files: str = typer.Option(
+        None,
+        "--changed-files",
+        help="Comma-separated list of modified files to lint.",
+    ),
+    json_mode: bool = typer.Option(False, "--json", help="Emit JSON lines."),
+) -> None:
+    """Run code hygiene checks via QAAgent.
+
+    Examples
+    --------
+    aptdata mesh lint --deep
+    aptdata mesh lint --deep --json
+    """
+    console = SmartConsole(json_mode=json_mode)
+    files_to_check = None
+    if changed_files:
+        files_to_check = [f.strip() for f in changed_files.split(",") if f.strip()]
+
+    agent = QAAgent(root_dir=directory)
+    report = agent.lint(deep=deep, changed_files=files_to_check)
+
+    if json_mode:
+        print(json.dumps(report), flush=True)
+    else:
+        from rich.table import Table  # noqa: PLC0415
+
+        table = Table(title="QA/DX Lint Report", show_header=True)
+        table.add_column("Tool", style="cyan")
+        table.add_column("File", style="magenta")
+        table.add_column("Line", justify="right")
+        table.add_column("Code", style="green")
+        table.add_column("Message")
+        table.add_column("Severity")
+
+        for f in report["findings"]:
+            color = "red" if f.get("critical") else ("yellow" if f.get("severity") == "warning" else "white")
+            table.add_row(
+                f["tool"],
+                f["file"],
+                str(f["line"]),
+                f["code"],
+                f["message"],
+                f"[{color}]{f.get('severity', 'unknown')}[/{color}]"
+            )
+
+        console.render(table)
+
+        metrics = report.get("metrics", {})
+        console.info(f"Total Issues: {metrics.get('total_issues', 0)}")
+        console.info(f"Warnings: {metrics.get('warnings', 0)}")
+        if metrics.get("critical_issues", 0) > 0:
+            console.error(f"Critical Issues: {metrics.get('critical_issues')}")
+
+    if report["status"] == "failed":
+        raise typer.Exit(1)
 
 
 @mesh_app.command("build")
