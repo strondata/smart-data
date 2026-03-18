@@ -66,6 +66,7 @@ from aptdata.plugins.quality.report import (  # noqa: E402
     CheckStatus,
     QualityReport,
 )
+from aptdata.cli.commands.agents.qa_agent import QAAgent  # noqa: E402
 from aptdata.plugins.rest import APIReader  # noqa: E402
 from aptdata.plugins.vector import QdrantWriter  # noqa: E402
 from aptdata.telemetry.instrumentation import mask_telemetry_value  # noqa: E402
@@ -310,3 +311,25 @@ def get_pipeline_lineage(flow_id: str) -> dict[str, Any]:
     graph.add_node(node)
 
     return graph.to_dict()
+
+
+@mcp.tool()
+def run_code_hygiene() -> dict[str, Any]:
+    """Execute continuous code hygiene (dead code cleanup) via the QAAgent.
+
+    Returns
+    -------
+    dict
+        A status dictionary with 'status', 'reports' (list of findings/removals),
+        and 'count' (number of issues addressed).
+    """
+    _mark_request()
+
+    agent = QAAgent()
+    reports = agent.run_clean(json_mode=False)
+
+    return {
+        "status": "completed",
+        "reports": reports,
+        "count": len(reports)
+    }

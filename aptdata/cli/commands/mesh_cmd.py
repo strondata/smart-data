@@ -9,6 +9,7 @@ from pathlib import Path
 import typer
 
 from aptdata.cli.rendering.console import SmartConsole
+from aptdata.cli.commands.agents.qa_agent import QAAgent
 
 mesh_app = typer.Typer(
     name="mesh", help="Orchestrate mesh components (job-wheel, docker-compose-app, …)."
@@ -348,6 +349,48 @@ def mesh_build(
         )
     else:
         console.success(f"Component [bold cyan]{component}[/] built successfully.")
+
+
+@mesh_app.command("clean")
+def mesh_clean(
+    json_mode: bool = typer.Option(False, "--json", help="Emit JSON lines."),
+) -> None:
+    """Run the QA/DX Agent to perform continuous codebase hygiene and dead code cleanup."""
+    console = SmartConsole(json_mode=json_mode)
+    if not json_mode:
+        console.info("Starting QA/DX Agent to detect and clean dead code...")
+
+    agent = QAAgent()
+    reports = agent.run_clean(json_mode=json_mode)
+
+    if not json_mode:
+        if reports:
+            console.success(f"Cleaned up {len(reports)} dead code fragments.")
+        else:
+            console.info("No dead code found.")
+
+
+@mesh_app.command("lint")
+def mesh_lint(
+    deep: bool = typer.Option(False, "--deep", help="Run deep semantic analysis."),
+    json_mode: bool = typer.Option(False, "--json", help="Emit JSON lines."),
+    changed_files: str = typer.Option(None, "--changed-files", help="Comma-separated list of changed files."),
+) -> None:
+    """Run linting (ruff, mypy, pydocstyle, radon) via the QA/DX Agent."""
+    console = SmartConsole(json_mode=json_mode)
+    if not json_mode:
+        console.info("Running QA/DX Agent linting validations...")
+
+    agent = QAAgent()
+    files_list = changed_files.split(",") if changed_files else None
+    reports = agent.run_lint(deep=deep, json_mode=json_mode, changed_files=files_list)
+
+    if not json_mode:
+        if any(r.get("event") == "qa.lint.failure" for r in reports):
+            console.error("Linting found issues. See logs for details.")
+            raise typer.Exit(1)
+        else:
+            console.success("Linting completed successfully.")
 
 
 # ---------------------------------------------------------------------------
