@@ -1,6 +1,6 @@
 # Configuração YAML (Configuration)
 
-O `aptdata` suporta a configuração declarativa de pipelines via arquivo `aptdata.yaml`, permitindo que você defina, valide e orquestre a execução de sistemas sem precisar escrever código de inicialização (*bootstrap*) em Python.
+O `aptdata` permite configurar e orquestrar pipelines de forma declarativa via arquivo `aptdata.yaml`, dispensando *bootstrap* manual em Python.
 
 ---
 
@@ -80,7 +80,7 @@ telemetry:
 
 ## Substituição de Variáveis de Ambiente (Secret Manager)
 
-Valores no arquivo YAML podem referenciar dinamicamente variáveis de ambiente injetadas em tempo de execução utilizando a sintaxe `${VAR_NAME}`. A resolução recursiva é garantida pela classe `SecretManager`.
+Valores no arquivo YAML suportam resolução recursiva e dinâmica de variáveis de ambiente através do `SecretManager` via sintaxe `${VAR_NAME}`.
 
 ```yaml
 telemetry:

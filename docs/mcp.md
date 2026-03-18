@@ -1,12 +1,15 @@
 # Servidor MCP (Integração IA)
 
-O `aptdata` inclui um servidor [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) embutido. Ele transforma agentes de IA (como Claude Desktop, Copilot, Devin) em Engenheiros de Dados autônomos. Em vez de apenas gerar código estático, a IA consegue descobrir conexões, auditar contratos de schema e executar pipelines diretamente contra sua infraestrutura, sem estourar o limite de *tokens* de contexto.
+O servidor [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) embutido no `aptdata` permite que agentes de IA autônomos descubram, auditem e executem pipelines na sua infraestrutura.
 
 ---
 
 ## Visão Geral
 
-Baseado no [FastMCP](https://github.com/jlowin/fastmcp), o servidor expõe a infraestrutura do framework através de **Ferramentas (Tools)** (ações que modificam estado ou extraem dados ativamente) e **Recursos (Resources)** (estado de leitura, como esquemas e relatórios).
+Baseado no [FastMCP](https://github.com/jlowin/fastmcp), a infraestrutura é exposta à IA por duas vias:
+
+- **Tools:** Ações ativas que modificam estado ou extraem dados (ex: `run_flow`).
+- **Resources:** URIs de leitura sob demanda (ex: schemas, relatórios).
 
 ```mermaid
 graph LR

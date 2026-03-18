@@ -83,7 +83,7 @@ classDiagram
 
 ## Camada 1 – Interfaces `I*`
 
-Cada classe `I*` é um `@dataclass` puramente Python que herda de `ABC` (Abstract Base Class). Ela declara **apenas os métodos abstratos**, sem conter campos de dados ou lógica de implementação. Qualquer método decorado com `@abstractmethod` no framework dispara um `NotImplementedError` se for invocado diretamente, forçando a aderência rigorosa ao contrato.
+Cada classe `I*` é um `@dataclass` puramente Python que herda de `ABC` (Abstract Base Class). Ela declara **apenas os métodos abstratos**. Qualquer método decorado com `@abstractmethod` dispara um `NotImplementedError` se for invocado diretamente, forçando a aderência rigorosa ao contrato.
 
 ```python
 from abc import ABC, abstractmethod
@@ -112,7 +112,7 @@ class IDataset(ABC, Generic[T]):
 
 ## Camada 2 – Classes Base (`Base*`)
 
-As classes base (ex: `BaseDataset`, `BaseComponent`) integram Pydantic (via `@pydantic_dataclass`) e herdam da correspondente interface `I*`. Elas injetam **campos validados rigorosamente em tempo de execução**, poupando o usuário de escrever *boilerplate* defensivo em construtores.
+As classes base integram Pydantic (via `@pydantic_dataclass`) e herdam da interface `I*`. Elas injetam **campos validados rigorosamente em tempo de execução**, poupando a necessidade de validação manual.
 
 ```python
 from pydantic.dataclasses import dataclass as pydantic_dataclass
@@ -197,16 +197,17 @@ sequenceDiagram
 
 ## Event Bus e Observabilidade
 
-Para viabilizar monitoramento em tempo real, auditoria e *data lineage* sem misturar métricas de infraestrutura à lógica do domínio (ETL puro), o `aptdata` possui um mecanismo assíncrono **Event Bus**. Esse barramento reside no objeto injetado `IContext` de qualquer fluxo de operação.
+O `aptdata` possui um mecanismo assíncrono **Event Bus** injetado via `IContext` para observabilidade sem afetar a lógica de domínio. Listeners observadores não podem travar a execução síncrona dos pipelines.
 
-Os seguintes hooks de ciclo de vida são emitidos compulsoriamente via `BaseComponent`:
+A classe `BaseComponent` emite automaticamente os seguintes hooks de ciclo de vida:
 
-* `pre_execute`
-* `on_success`
-* `on_failure`
-* `post_execute`
+- `pre_execute`
+- `on_success`
+- `on_failure`
+- `post_execute`
 
-Os *payloads* são modelos Pydantic da estrutura `ComponentExecutionEvent`, garantindo serialização segura (`.model_dump_json()`) para agentes MCP ou TUI dashboards. Listeners observadores não podem travar a execução síncrona dos pipelines.
+!!! note "Integração Pydantic"
+    Os *payloads* são modelos `ComponentExecutionEvent`, garantindo serialização segura em JSON Lines (`.model_dump_json()`) para agentes MCP e monitores TUI.
 
 ```mermaid
 sequenceDiagram

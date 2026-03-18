@@ -94,11 +94,11 @@ nav:
   - Core:
       - Architecture: architecture.md
       - ADR 001 - Revisão Core: ADR-001-Revisao-Arquitetural-Core.md
-      - Quality: quality.md
-      - Governance: governance.md
       - Telemetry: telemetry.md
       - CI & Execution Logs: ci-logs.md
   - Plugins:
+      - Quality: quality.md
+      - Governance: governance.md
       - Engines: transform-engines.md
       - MCP Server: mcp.md
   - API:

@@ -89,7 +89,7 @@ As `Expectations` são checagens unitárias focadas em uma única propriedade de
 
 ## Validador Orquestrado (`QualityValidator`)
 
-O `QualityValidator` executa um *suite* inteiro de expectativas e aplica a política definida em `EnforcementMode`.
+O `QualityValidator` aplica um *suite* de verificações e impõe a política `EnforcementMode`. Pode ser integrado nativamente em fluxos ou workflows.
 
 ```python
 from aptdata.plugins.quality import (
@@ -98,6 +98,7 @@ from aptdata.plugins.quality import (
     ExpectColumnValuesToBeUnique,
     QualityValidator,
 )
+from aptdata.core.workflow import Workflow
 
 validator = QualityValidator(
     expectations=[
@@ -109,9 +110,7 @@ validator = QualityValidator(
     name="order_validator",
 )
 
-# Integração nativa como um step no pipeline
-from aptdata.core.workflow import Workflow
-
+# Integração no pipeline
 wf = Workflow("quality_pipeline")
 wf.add_step(validator.validate)
 clean_data = wf.execute(raw_data)

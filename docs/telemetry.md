@@ -6,7 +6,7 @@ O **aptdata** integra-se nativamente com o [OpenTelemetry](https://opentelemetry
 
 ## Visão Geral
 
-Através do método `__init_subclass__`, toda classe que herda de `BaseComponent` é **auto-instrumentada**. Ao invocar o `execute()`, o framework encapsula a chamada em um *Span* (Rastro) do OpenTelemetry carregando os metadados ricos daquele componente. Nenhuma alteração no código de negócio é necessária.
+Toda classe que herda de `BaseComponent` é auto-instrumentada sem necessidade de alterar o código de negócio. A invocação de `execute()` gera automaticamente um *Span* contendo os metadados do componente.
 
 ```mermaid
 graph TD
@@ -28,7 +28,7 @@ graph TD
     S --> G
 ```
 
-Validadores de Qualidade de Dados e *hooks* de Governança emitem *child spans* (rastros filhos), garantindo visibilidade end-to-end e tempo de execução granulado ao longo do pipeline.
+*Child spans* emitidos por Validadores de Qualidade e Governança garantem visibilidade end-to-end granular.
 
 ---
 

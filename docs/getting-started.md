@@ -77,30 +77,16 @@ flowchart LR
     DS --> CO --> FL --> SY --> RG
 ```
 
-### 1. Criar um Dataset
-Um Dataset implementa as operações de leitura e escrita através do contrato `IDataset`. Herdando de `BaseDataset`, você recebe injeção de estado e validação via Pydantic.
+### 1. Instanciar um Dataset
+O framework possui implementações prontas, como o `InMemoryDataset`, que já implementam operações de leitura e escrita garantindo validação via Pydantic.
 
 ```python
-from pydantic.dataclasses import dataclass as pydantic_dataclass
-from aptdata.core import BaseDataset
+from aptdata.plugins.dataset import InMemoryDataset
 
-@pydantic_dataclass
-class MemoryDataset(BaseDataset): # (1)!
-    """Dataset em memória para propósitos de teste."""
-
-    def __post_init__(self) -> None: # (2)!
-        self._data = None
-
-    def read(self): # (3)!
-        return self._data
-
-    def write(self, data) -> None:
-        self._data = data
+# Inicializa o dataset nativo em memória
+ds = InMemoryDataset(uri="memory://input")
+ds.write([1, 2, 3])
 ```
-
-1. A herança de `BaseDataset` garante injeção do esquema Pydantic para validação robusta.
-2. O método `__post_init__` é o local ideal para definir propriedades mutáveis ou privadas que não devem ser validadas como input do construtor.
-3. O método `read()` é onde a lógica de extração real (ex: chamar a API do Pandas ou do Spark) acontece.
 
 ### 2. Criar um Componente
 Um Componente (implementa `IComponent`) recebe uma lista de *inputs* validados, os processa, e retorna uma lista de *outputs* (permitindo múltiplas saídas ou fluxos paralelos).
@@ -108,6 +94,7 @@ Um Componente (implementa `IComponent`) recebe uma lista de *inputs* validados, 
 ```python
 from pydantic.dataclasses import dataclass as pydantic_dataclass
 from aptdata.core import BaseComponent, ComponentMeta, ComponentKind, IDataset
+from aptdata.plugins.dataset import InMemoryDataset
 
 @pydantic_dataclass
 class DoubleComponent(BaseComponent):
@@ -118,7 +105,7 @@ class DoubleComponent(BaseComponent):
 
     def execute(self, inputs: list[IDataset]) -> list[IDataset]:
         data = inputs[0].read()
-        out = MemoryDataset(uri="memory://output")
+        out = InMemoryDataset(uri="memory://output")
         out.write([x * 2 for x in data])
         return [out]
 
@@ -187,7 +174,8 @@ class MySystem(BaseSystem):
         self._flows.append(flow)
 
     def run(self) -> None:
-        ds = MemoryDataset(uri="memory://input")
+        from aptdata.plugins.dataset import InMemoryDataset
+        ds = InMemoryDataset(uri="memory://input")
         ds.write([1, 2, 3])
         inputs = [ds]
         for flow in self._flows:
