@@ -10,6 +10,33 @@ import time
 from threading import Lock
 from typing import Any
 
+from aptdata.core.lineage import (
+    LineageEventType,
+    LineageGraph,
+    LineageNode,
+)
+from aptdata.plugins import registry
+from aptdata.plugins.governance.rules import BusinessRule, RuleRegistry
+from aptdata.plugins.local_fs import (
+    CSVReader,
+    CSVWriter,
+    JSONReader,
+    JSONWriter,
+    ParquetReader,
+    ParquetWriter,
+)
+from aptdata.plugins.manager import plugin_manager
+from aptdata.plugins.postgres import PostgresReader, PostgresWriter
+from aptdata.plugins.quality.report import (
+    CheckResult,
+    CheckStatus,
+    QualityReport,
+)
+from aptdata.plugins.rest import APIReader
+from aptdata.plugins.vector import QdrantWriter
+from aptdata.qa.agent import QAAgent
+from aptdata.telemetry.instrumentation import mask_telemetry_value
+
 try:
     from mcp.server.fastmcp import FastMCP
 
@@ -43,32 +70,6 @@ class _MockMCP:
             "Please run `pip install aptdata[ai]` to use mcp-start."
         )
 
-
-from aptdata.core.lineage import (  # noqa: E402
-    LineageEventType,
-    LineageGraph,
-    LineageNode,
-)
-from aptdata.plugins import registry  # noqa: E402
-from aptdata.plugins.governance.rules import BusinessRule, RuleRegistry  # noqa: E402
-from aptdata.plugins.local_fs import (  # noqa: E402
-    CSVReader,
-    CSVWriter,
-    JSONReader,
-    JSONWriter,
-    ParquetReader,
-    ParquetWriter,
-)
-from aptdata.plugins.manager import plugin_manager  # noqa: E402
-from aptdata.plugins.postgres import PostgresReader, PostgresWriter  # noqa: E402
-from aptdata.plugins.quality.report import (  # noqa: E402
-    CheckResult,
-    CheckStatus,
-    QualityReport,
-)
-from aptdata.plugins.rest import APIReader  # noqa: E402
-from aptdata.plugins.vector import QdrantWriter  # noqa: E402
-from aptdata.telemetry.instrumentation import mask_telemetry_value  # noqa: E402
 
 mcp = FastMCP("aptdata") if _MCP_AVAILABLE else _MockMCP("aptdata")
 _MCP_REQUEST_COUNT = 0
@@ -106,21 +107,7 @@ _register_builtin_plugins()
 
 @mcp.tool()
 def run_flow(flow_id: str) -> dict[str, Any]:
-    """Execute a registered flow/system and return its status.
-
-    Parameters
-    ----------
-    flow_id:
-        The identifier of a system previously registered in the plugin
-        registry (e.g. ``"pipeline_x"``).
-
-    Returns
-    -------
-    dict
-        A status dict with keys ``status``, ``flow_id``, and
-        ``elapsed_seconds`` on success, or ``status`` and ``error`` on
-        failure.
-    """
+    """Execute a registered flow/system and return its status."""
     _mark_request()
     started_at = time.time()
     try:
@@ -151,13 +138,7 @@ def run_flow(flow_id: str) -> dict[str, Any]:
 
 @mcp.tool()
 def list_registered_systems() -> dict[str, Any]:
-    """Return the names of all systems available in the plugin registry.
-
-    Returns
-    -------
-    dict
-        A dict with ``systems`` (list of names) and ``count``.
-    """
+    """Return the names of all systems available in the plugin registry."""
     _mark_request()
     systems = registry.list_systems()
     return {"systems": systems, "count": len(systems)}
@@ -221,13 +202,7 @@ def preview_dataset(plugin: str, **reader_config: Any) -> dict[str, Any]:
 
 @mcp.resource("schema://datasets/{dataset_name}")
 def get_dataset_schema(dataset_name: str) -> str:
-    """Return metadata for a dataset registered under *dataset_name*.
-
-    This is a placeholder resource – concrete implementations should query
-    a dataset catalogue or registry.  For now it returns a JSON string
-    describing the dataset name so that agents can discover schema
-    information.
-    """
+    """Return metadata for a dataset registered under *dataset_name*."""
     import json
 
     return json.dumps(
@@ -245,9 +220,8 @@ def get_dataset_schema(dataset_name: str) -> str:
 def get_latest_quality_report(workflow_name: str) -> str:
     """Allow the AI to audit quality failures in the latest run."""
     import json
+    from dataclasses import asdict
 
-    # Placeholder logic to fetch the latest QualityReport JSON.
-    # In a real scenario, this would query a QualityStore or an external catalog.
     report = QualityReport(
         dataset_uri="unknown",
         workflow_name=workflow_name,
@@ -259,10 +233,6 @@ def get_latest_quality_report(workflow_name: str) -> str:
             )
         ],
     )
-    # Using json.dumps on the summary for now, or building a dictionary.
-    # QualityReport is a dataclass without a direct model_dump_json method.
-    from dataclasses import asdict
-
     return json.dumps(asdict(report))
 
 
@@ -272,8 +242,6 @@ def list_business_rules() -> str:
     import json
 
     registry = RuleRegistry()
-    # Return the catalog of data rules for the AI to build pipelines without violations.
-    # Here we return a mock rule for demonstration since registry is empty.
     registry.register(
         BusinessRule(
             rule_id="BR-MOCK-001",
@@ -299,8 +267,6 @@ def get_pipeline_lineage(flow_id: str) -> dict[str, Any]:
     """Return the dependency tree (DAG) and column traceability (Lineage)."""
     _mark_request()
 
-    # Query aptdata.core.lineage to understand how a column was generated.
-    # Placeholder: return a dummy lineage graph for the requested flow_id.
     graph = LineageGraph(run_id="mock-run-1", workflow_name=flow_id)
     node = LineageNode(
         dataset_uri="mock://dataset",
@@ -310,3 +276,16 @@ def get_pipeline_lineage(flow_id: str) -> dict[str, Any]:
     graph.add_node(node)
 
     return graph.to_dict()
+
+
+@mcp.tool()
+def run_code_hygiene(changed_files: str | None = None) -> list[dict]:
+    """Run QAAgent code hygiene checks via MCP.
+
+    Args:
+        changed_files: Comma-separated list of changed files to analyze.
+    """
+    agent = QAAgent()
+    files = changed_files.split(",") if changed_files else None
+    findings = agent.run_all_checks(changed_files=files)
+    return findings

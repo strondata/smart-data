@@ -1,0 +1,47 @@
+name: PR Code Review (QA/DX)
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  code-review:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          pip install poetry
+          poetry install
+
+      - name: Get changed files
+        id: changed-files
+        uses: tj-actions/changed-files@v44
+
+      - name: Run QAAgent checks
+        run: |
+          changed="${{ steps.changed-files.outputs.all_changed_files }}"
+          changed_csv=$(echo "$changed" | tr ' ' ',')
+          poetry run aptdata mesh lint --deep --json --changed-files "$changed_csv" > report.jsonl
+
+      - name: Post PR Review Comments
+        if: always()
+        uses: reviewdog/action-setup@v1
+        with:
+          reviewdog_version: latest
+      - run: |
+          cat report.jsonl | jq -r
+        if: always() '. | "\(.file):\(.line // 1): \(.message) [\(.tool)]"' > reviewdog.txt
+          cat reviewdog.txt | reviewdog -efm="%f:%l: %m" -name="QAAgent" -reporter=github-pr-review -filter-mode="added" -fail-on-error="false"
+        env:
+          REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}

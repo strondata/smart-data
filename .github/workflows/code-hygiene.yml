@@ -1,0 +1,47 @@
+name: Code Hygiene Daily
+
+on:
+  schedule:
+    - cron: '0 2 * * *' # Daily at 2 AM
+  workflow_dispatch:
+
+jobs:
+  hygiene:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          pip install poetry
+          poetry install
+
+      - name: Create clean branch
+        run: |
+          git checkout -b clean || git checkout clean
+          git reset --hard origin/main
+
+      - name: Run Auto-fixes
+        run: |
+          poetry run ruff check --fix aptdata/ tests/
+          poetry run ruff format aptdata/ tests/
+
+      - name: Run QAAgent Report
+        run: |
+          poetry run aptdata mesh lint --deep --json > qa_report.jsonl
+
+      - name: Create PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git commit -am "🧹 chore: automated code hygiene fixes" || echo "No changes to commit"
+          git push origin clean -f
+          gh pr create --title "🧹 chore: Code Hygiene Auto-fixes" --body "## What\nAutomated code hygiene fixes.\n\n## Why\nMaintain code quality.\n\n## Verification\nQA report generated.\n\n## Result\nClean codebase." --base main --head clean || echo "PR already exists"

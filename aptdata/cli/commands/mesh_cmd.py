@@ -9,6 +9,7 @@ from pathlib import Path
 import typer
 
 from aptdata.cli.rendering.console import SmartConsole
+from aptdata.qa.agent import QAAgent
 
 mesh_app = typer.Typer(
     name="mesh", help="Orchestrate mesh components (job-wheel, docker-compose-app, …)."
@@ -348,6 +349,59 @@ def mesh_build(
         )
     else:
         console.success(f"Component [bold cyan]{component}[/] built successfully.")
+
+
+@mesh_app.command("lint")
+def mesh_lint(
+    deep: bool = typer.Option(False, "--deep", help="Run deep architectural analysis."),
+    json_mode: bool = typer.Option(False, "--json", help="Emit JSON lines."),
+    changed_files: str = typer.Option(
+        None, "--changed-files", help="Comma-separated list of changed files."
+    ),
+) -> None:
+    """Run QAAgent to review code standardization and detect bugs."""
+    console = SmartConsole(json_mode=json_mode)
+    if not json_mode:
+        console.info("Starting QA/DX code hygiene checks...")
+
+    agent = QAAgent()
+
+    files_to_check = changed_files.split(",") if changed_files else None
+    findings = agent.run_all_checks(changed_files=files_to_check)
+
+    if json_mode:
+        agent.emit_json_lines()
+    else:
+        for f in findings:
+            msg = (
+                f"[{f.get('tool', 'unknown')}] {f.get('file', '')}:"
+                f"{f.get('line', '')} - {f.get('message', '')}"
+            )
+            if f.get("severity") == "critical":
+                console.error(msg)
+            elif f.get("severity") == "warning":
+                console.warning(msg)
+            else:
+                console.info(msg)
+
+        if not findings:
+            console.success("No code hygiene issues found!")
+
+    criticals = [f for f in findings if f.get("severity") == "critical"]
+    if criticals:
+        raise typer.Exit(1)
+
+
+@mesh_app.command("clean")
+def mesh_clean(
+    deep: bool = typer.Option(False, "--deep", help="Run deep architectural analysis."),
+    json_mode: bool = typer.Option(False, "--json", help="Emit JSON lines."),
+    changed_files: str = typer.Option(
+        None, "--changed-files", help="Comma-separated list of changed files."
+    ),
+) -> None:
+    """Run QAAgent to review code standardization and detect bugs (alias for lint)."""
+    mesh_lint(deep=deep, json_mode=json_mode, changed_files=changed_files)
 
 
 # ---------------------------------------------------------------------------
