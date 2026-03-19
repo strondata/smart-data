@@ -51,7 +51,7 @@ pii_tagged = contract.get_columns_by_classification(ColumnClassification.PII)
 
 ## Verificações (`Expectations`)
 
-As `Expectations` são checagens unitárias focadas em uma única propriedade de uma coluna. Elas implementam `BaseExpectation` e retornam um `CheckResult`. Cada expectativa possui internamente implementações isoladas para `validate_pandas(df)` e `validate_spark(df)`. Ao chamar `.validate(df)`, a *engine* é detectada automaticamente via introspecção.
+As `Expectations` (`BaseExpectation`) focam em atributos de coluna gerando um `CheckResult`. Cada expectativa isola `validate_pandas` e `validate_spark`, detectando a *engine* nativa em runtime sem dependência de adaptadores de domínio cruzados.
 
 <div class="grid cards" markdown>
 
@@ -129,9 +129,7 @@ clean_data = wf.execute(raw_data)
 
 ## Relatório de Qualidade (`QualityReport`)
 
-Após o fim da avaliação, o framework constrói internamente um objeto imutável `QualityReport`.
-
-A propriedade `passed` retorna `True` exclusivamente quando nenhuma das checagens recebeu o status `FAILED`.
+O validador orquestrado produz um `QualityReport` imutável. `passed` avalia como `True` unicamente se falhas (`FAILED`) inexistirem.
 
 ```python
 from aptdata.plugins.quality.report import QualityReport

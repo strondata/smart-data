@@ -80,7 +80,7 @@ telemetry:
 
 ## Substituição de Variáveis de Ambiente (Secret Manager)
 
-Valores no arquivo YAML podem referenciar dinamicamente variáveis de ambiente injetadas em tempo de execução utilizando a sintaxe `${VAR_NAME}`. A resolução recursiva é garantida pela classe `SecretManager`.
+Referências `YAML` na sintaxe `${VAR_NAME}` resolvem dinamicamente variáveis de ambiente instanciadas (`SecretManager.resolve`).
 
 ```yaml
 telemetry:
@@ -94,7 +94,7 @@ telemetry:
 
 ## Integração com Templates
 
-O comando de scaffolding gera automaticamente o arquivo `aptdata.yaml` como parte da estrutura padrão do projeto.
+A infraestrutura `scaffold` preenche o `aptdata.yaml` na raiz baseando-se no `template` escolhido.
 
 ```bash
 aptdata scaffold my_project --template medallion

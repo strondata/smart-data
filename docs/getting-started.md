@@ -78,7 +78,7 @@ flowchart LR
 ```
 
 ### 1. Criar um Dataset
-Um Dataset implementa as operações de leitura e escrita através do contrato `IDataset`. Herdando de `BaseDataset`, você recebe injeção de estado e validação via Pydantic.
+A abstração `IDataset` (via `BaseDataset`) injeta estado dinâmico e validação `Contract-First` nativa via Pydantic.
 
 ```python
 from pydantic.dataclasses import dataclass as pydantic_dataclass
@@ -98,12 +98,12 @@ class MemoryDataset(BaseDataset): # (1)!
         self._data = data
 ```
 
-1. A herança de `BaseDataset` garante injeção do esquema Pydantic para validação robusta.
-2. O método `__post_init__` é o local ideal para definir propriedades mutáveis ou privadas que não devem ser validadas como input do construtor.
-3. O método `read()` é onde a lógica de extração real (ex: chamar a API do Pandas ou do Spark) acontece.
+1. `BaseDataset` viabiliza autovalidação rigorosa de construtores.
+2. `__post_init__` encapsula estado isolado de validação do Pydantic.
+3. `read()` executa de fato a extração com engines como Pandas/Spark.
 
 ### 2. Criar um Componente
-Um Componente (implementa `IComponent`) recebe uma lista de *inputs* validados, os processa, e retorna uma lista de *outputs* (permitindo múltiplas saídas ou fluxos paralelos).
+Implementando `IComponent`, recebem-se `inputs` mapeados retornando listas de outputs (suportando *forks*).
 
 ```python
 from pydantic.dataclasses import dataclass as pydantic_dataclass
@@ -132,7 +132,7 @@ comp = DoubleComponent(
     Com a API Declarativa (decorators como `@pandas_component`), a instanciação manual do `InMemoryDataset` é feita pelo framework "por debaixo dos panos". Você codifica apenas a função recebendo e devolvendo DataFrames.
 
 ### 3. Criar um Fluxo (Flow)
-Um Fluxo liga componentes em um Grafo Direcionado. Herdando de `BaseFlow`, as arestas suportam condicionais nativas (`FlowEdge`).
+Um `BaseFlow` amarra componentes em um Grafo Direcionado (`DAG`) gerenciando condicionais via `FlowEdge`.
 
 ```python
 from pydantic.dataclasses import dataclass as pydantic_dataclass
@@ -198,13 +198,13 @@ registry.register("my_system", MySystem)
 ```
 
 ### 5. Executar via CLI
-Com o seu componente registrado no entrypoint do módulo, execute:
+Invoque o orquestrador instanciado a partir do Plugin Registry:
 
 ```bash
 aptdata run my_system
 ```
 
-Eventos de ciclo de vida automáticos (`pre_execute`, `on_success`) são emitidos internamente pelo EventBus.
+O `EventBus` injeta hooks automáticos de observabilidade (`pre_execute`, `on_success`).
 
 Saída esperada em formato JSON Lines:
 ```json

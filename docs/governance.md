@@ -47,7 +47,7 @@ graph LR
 
 ### Visão Geral
 
-O subsistema de linhagem reside em `aptdata.core.lineage`. Toda execução de *workflow* produz um `LineageGraph` contendo uma lista ordenada e imutável de objetos `LineageNode`.
+Subsistema gerido via `aptdata.core.lineage`. A orquestração origina um `LineageGraph` contendo um registro ordenado e imutável de instâncias `LineageNode`.
 
 ```mermaid
 flowchart LR

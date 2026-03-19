@@ -112,7 +112,7 @@ class IDataset(ABC, Generic[T]):
 
 ## Camada 2 – Classes Base (`Base*`)
 
-As classes base (ex: `BaseDataset`, `BaseComponent`) integram Pydantic (via `@pydantic_dataclass`) e herdam da correspondente interface `I*`. Elas injetam **campos validados rigorosamente em tempo de execução**, poupando o usuário de escrever *boilerplate* defensivo em construtores.
+As classes base (ex: `BaseDataset`, `BaseComponent`) utilizam Pydantic (`@pydantic_dataclass`) implementando a interface `I*`. A validação em tempo de execução elimina *boilerplate* defensivo em construtores.
 
 ```python
 from pydantic.dataclasses import dataclass as pydantic_dataclass
@@ -126,13 +126,13 @@ class BaseDataset(IDataset[Any]):
 ```
 
 !!! tip "Dica: Estado Privado"
-    Utilize o método especial `__post_init__` para inicializar atributos privados de infraestrutura. O Pydantic valida e mapeia os argumentos na inicialização da classe base, mas os campos configurados no `__post_init__` funcionam como atributos regulares em Python (não sendo checados via schema de input).
+    Utilize `__post_init__` para instanciar recursos de infraestrutura (como conexões de banco) isolados da validação de schema do construtor.
 
 ---
 
 ## ComponentMeta e ComponentKind
 
-Todos os componentes encapsulam os seus atributos não-funcionais num objeto imutável `ComponentMeta`.
+Componentes gerenciam metadados via `ComponentMeta` imutável.
 
 === "Declaração Explicita"
 
@@ -157,7 +157,7 @@ Valores permitidos para `ComponentKind`: `TRANSFORM`, `FILTER`, `AGGREGATE`, `EX
 
 ## Primitivas de Roteamento de Fluxo
 
-As execuções condicionais e as ramificações de pipeline não são resolvidas via "If/Else" nas transformações do código de negócios. Elas são formalizadas pela estrutura `FlowEdge` (Grafo Aresta).
+Ramificações não utilizam "If/Else" nas transformações, sendo declaradas nativamente via `FlowEdge`.
 
 ```python
 from aptdata.core import FlowEdge
@@ -175,11 +175,9 @@ FlowEdge(
 
 ---
 
-## Registry de Plugins (Inversão de Controle da CLI)
+## Registry de Plugins (Inversão de Controle)
 
-Componentes, Flows ou Sistemas não são diretamente invocados pela linha de comando. Para garantir o desacoplamento arquitetural, instâncias concretas são injetadas em um `registry` global nomeado (`ComponentRegistry`).
-
-A CLI resolve internamente os nomes em tempo de execução chamando `registry.get(name)`.
+A CLI resolve entidades registradas dinamicamente (`registry.get(name)`), impedindo acoplamento de orquestração direta em scripts.
 
 ```mermaid
 sequenceDiagram
@@ -197,16 +195,7 @@ sequenceDiagram
 
 ## Event Bus e Observabilidade
 
-Para viabilizar monitoramento em tempo real, auditoria e *data lineage* sem misturar métricas de infraestrutura à lógica do domínio (ETL puro), o `aptdata` possui um mecanismo assíncrono **Event Bus**. Esse barramento reside no objeto injetado `IContext` de qualquer fluxo de operação.
-
-Os seguintes hooks de ciclo de vida são emitidos compulsoriamente via `BaseComponent`:
-
-* `pre_execute`
-* `on_success`
-* `on_failure`
-* `post_execute`
-
-Os *payloads* são modelos Pydantic da estrutura `ComponentExecutionEvent`, garantindo serialização segura (`.model_dump_json()`) para agentes MCP ou TUI dashboards. Listeners observadores não podem travar a execução síncrona dos pipelines.
+O `EventBus` injetado viabiliza observabilidade em tempo real assíncrona, desacoplada da lógica core. O ciclo de vida (`pre_execute`, `on_success`, `on_failure`, `post_execute`) emite eventos imutáveis sem travar a thread de processamento principal.
 
 ```mermaid
 sequenceDiagram
