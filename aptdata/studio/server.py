@@ -231,6 +231,15 @@ def _observability() -> dict:
 def serve(agents_file: str | None = None, host: str = "0.0.0.0", port: int = 4570):
     state = StudioState(agents_file)
     httpd = ThreadingHTTPServer((host, port), _make_handler(state))
+    # Rastreio Telegram (canal próprio) — gap do PR4. Best-effort, nunca derruba.
+    try:
+        from aptdata.transports.telegram_tracer import TelegramTracer  # noqa: PLC0415
+
+        tracer = TelegramTracer.from_agents_file(agents_file)
+        if tracer is not None:
+            tracer.install()
+    except Exception:  # noqa: BLE001
+        pass
     try:  # traço de subida de app é best-effort
         from aptdata.observability import Observer  # noqa: PLC0415
 

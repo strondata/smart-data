@@ -139,6 +139,31 @@ def run_checks(file: str | None) -> dict[str, Any]:
         else "transports.telegram ausente (rode `aptdata setup`)",
     )
 
+    # Rastreio Telegram (canal próprio) — gap do PR4. Opcional.
+    tracing = transport.get("tracing") or {}
+    tracing_chat_id = tracing.get("chat_id") or transport.get("chat_id")
+    if tracing.get("enabled") and tracing_chat_id:
+        check(
+            "telegram_tracing",
+            True,
+            f"rastreio habilitado p/ {tracing_chat_id}",
+        )
+    elif tracing.get("enabled"):
+        check(
+            "telegram_tracing",
+            False,
+            "tracing.enabled=true mas sem chat_id (deixe tracing.chat_id vazio "
+            "p/ reusar transports.telegram.chat_id)",
+        )
+    else:
+        check(
+            "telegram_tracing",
+            False,
+            "rastreio Telegram desativado "
+            "(transports.telegram.tracing.enabled=true "
+            "p/ postar one-liners num canal próprio)",
+        )
+
     try:
         from aptdata.observability import Observer  # noqa: PLC0415
 

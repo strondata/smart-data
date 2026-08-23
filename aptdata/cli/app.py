@@ -56,6 +56,26 @@ def _emit(payload: dict, *, error: bool = False) -> None:
         print(line, flush=True)
 
 
+def _install_telegram_tracer(agents_file: str | None) -> None:
+    """Best-effort: lê ``transports.telegram.tracing`` do agents.yaml
+    e registra um :class:`~aptdata.transports.telegram_tracer.TelegramTracer`
+    como subscriber do :class:`Observer`. Falhas são engolidas — o tracer
+    nunca pode derrubar o boot.
+
+    Gap do PR4 (renome viz→studio): rastreio Telegram num canal próprio.
+    Veja ``aptdata/transports/telegram_tracer.py`` e
+    ``docs/personas/APTData.md`` (rastreio one-liner).
+    """
+    try:
+        from aptdata.transports.telegram_tracer import TelegramTracer  # noqa: PLC0415
+
+        tracer = TelegramTracer.from_agents_file(agents_file)
+        if tracer is not None:
+            tracer.install()
+    except Exception:  # noqa: BLE001 — best-effort, nunca derruba o boot
+        pass
+
+
 @app.command()
 def run(
     pipeline: str = typer.Argument(..., help="Pipeline name / identifier to run."),
@@ -253,7 +273,9 @@ def telegram(
     from aptdata.cli.commands.agents_cmd import _resolve_file  # noqa: PLC0415
     from aptdata.transports.telegram import TelegramTransport  # noqa: PLC0415
 
-    engine = ConversationEngine.from_yaml(_resolve_file(file))
+    resolved_file = _resolve_file(file)
+    _install_telegram_tracer(resolved_file)
+    engine = ConversationEngine.from_yaml(resolved_file)
     transport = TelegramTransport(engine, token_env=token_env)
     try:  # traço de subida de app é best-effort
         from aptdata.observability import Observer  # noqa: PLC0415
@@ -279,6 +301,7 @@ def studio(
     """Launch aptdata studio — the web view of the agent ecosystem."""
     from aptdata.studio import serve  # noqa: PLC0415
 
+    _install_telegram_tracer(file)
     serve(agents_file=file, host=host, port=port)
 
 

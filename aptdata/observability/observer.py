@@ -61,6 +61,7 @@ class Observer:
 
     def __init__(self, store: ObservabilityStore | None = None):
         self._store = store
+        self._subscribers: list[Any] = []  # callbacks (kind, payload, agent_id)
 
     # -- ciclo de vida --------------------------------------------------------
 
@@ -82,6 +83,24 @@ class Observer:
         if self._store is None:
             self._store = ObservabilityStore()
         return self._store
+
+    # -- pub-sub -------------------------------------------------------------
+
+    def subscribe(self, callback: Any) -> None:
+        """Registra *callback(kind, payload, agent_id)* chamada após cada
+        emissão persistida. Best-effort: exceções no callback são engolidas
+        (não podem quebrar o pipeline nem o próximo subscriber).
+
+        Caso de uso: rastreio Telegram (``TelegramTracer``), sinks externos,
+        dashboards live, etc. O callback recebe os mesmos argumentos de
+        :meth:`emit` — sem cópia — então não deve mutar ``payload``.
+        """
+        self._subscribers.append(callback)
+
+    def unsubscribe(self, callback: Any) -> None:
+        """Remove *callback* (idempotente — sem erro se não estava registrado)."""
+        with contextlib.suppress(ValueError):
+            self._subscribers.remove(callback)
 
     # -- correlação ------------------------------------------------------------
 
@@ -124,6 +143,13 @@ class Observer:
             )
         except Exception as exc:
             logger.debug("observability emit dropped (%s: %s)", kind, exc)
+            return  # store falhou — não notifica subscribers (estado inconsistente)
+        # Pub-sub best-effort: cada callback no-throw (engolido aqui).
+        for callback in list(self._subscribers):
+            try:
+                callback(kind, payload or {}, agent_id)
+            except Exception as exc:  # noqa: BLE001 — ver docstring de subscribe
+                logger.debug("observability subscriber failed (%s: %s)", kind, exc)
 
     # -- leitura ------------------------------------------------------------------
 
