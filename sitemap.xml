@@ -2,110 +2,110 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://strondata.github.io/smart-data/</loc>
-         <lastmod>2026-07-20</lastmod>
+         <lastmod>2026-08-23</lastmod>
     </url>
     <url>
          <loc>https://strondata.github.io/smart-data/ADR-001-Revisao-Arquitetural-Core/</loc>
-         <lastmod>2026-07-20</lastmod>
+         <lastmod>2026-08-23</lastmod>
     </url>
     <url>
          <loc>https://strondata.github.io/smart-data/ADR-002-aptdata-nucleo-pluggable/</loc>
-         <lastmod>2026-07-20</lastmod>
+         <lastmod>2026-08-23</lastmod>
     </url>
     <url>
          <loc>https://strondata.github.io/smart-data/architecture/</loc>
-         <lastmod>2026-07-20</lastmod>
+         <lastmod>2026-08-23</lastmod>
     </url>
     <url>
          <loc>https://strondata.github.io/smart-data/changelog/</loc>
-         <lastmod>2026-07-20</lastmod>
+         <lastmod>2026-08-23</lastmod>
     </url>
     <url>
          <loc>https://strondata.github.io/smart-data/ci-logs/</loc>
-         <lastmod>2026-07-20</lastmod>
+         <lastmod>2026-08-23</lastmod>
     </url>
     <url>
          <loc>https://strondata.github.io/smart-data/configuration/</loc>
-         <lastmod>2026-07-20</lastmod>
+         <lastmod>2026-08-23</lastmod>
     </url>
     <url>
          <loc>https://strondata.github.io/smart-data/diys/</loc>
-         <lastmod>2026-07-20</lastmod>
+         <lastmod>2026-08-23</lastmod>
     </url>
     <url>
          <loc>https://strondata.github.io/smart-data/getting-started/</loc>
-         <lastmod>2026-07-20</lastmod>
+         <lastmod>2026-08-23</lastmod>
     </url>
     <url>
          <loc>https://strondata.github.io/smart-data/governance/</loc>
-         <lastmod>2026-07-20</lastmod>
+         <lastmod>2026-08-23</lastmod>
     </url>
     <url>
          <loc>https://strondata.github.io/smart-data/mcp/</loc>
-         <lastmod>2026-07-20</lastmod>
+         <lastmod>2026-08-23</lastmod>
     </url>
     <url>
          <loc>https://strondata.github.io/smart-data/observability/</loc>
-         <lastmod>2026-07-20</lastmod>
+         <lastmod>2026-08-23</lastmod>
     </url>
     <url>
          <loc>https://strondata.github.io/smart-data/quality/</loc>
-         <lastmod>2026-07-20</lastmod>
+         <lastmod>2026-08-23</lastmod>
     </url>
     <url>
          <loc>https://strondata.github.io/smart-data/scaffold-templates/</loc>
-         <lastmod>2026-07-20</lastmod>
+         <lastmod>2026-08-23</lastmod>
     </url>
     <url>
          <loc>https://strondata.github.io/smart-data/telegram/</loc>
-         <lastmod>2026-07-20</lastmod>
+         <lastmod>2026-08-23</lastmod>
     </url>
     <url>
          <loc>https://strondata.github.io/smart-data/telemetry/</loc>
-         <lastmod>2026-07-20</lastmod>
+         <lastmod>2026-08-23</lastmod>
     </url>
     <url>
          <loc>https://strondata.github.io/smart-data/transform-engines/</loc>
-         <lastmod>2026-07-20</lastmod>
+         <lastmod>2026-08-23</lastmod>
     </url>
     <url>
          <loc>https://strondata.github.io/smart-data/api/cli-interactive/</loc>
-         <lastmod>2026-07-20</lastmod>
+         <lastmod>2026-08-23</lastmod>
     </url>
     <url>
          <loc>https://strondata.github.io/smart-data/api/cli/</loc>
-         <lastmod>2026-07-20</lastmod>
+         <lastmod>2026-08-23</lastmod>
     </url>
     <url>
          <loc>https://strondata.github.io/smart-data/api/core/</loc>
-         <lastmod>2026-07-20</lastmod>
+         <lastmod>2026-08-23</lastmod>
     </url>
     <url>
          <loc>https://strondata.github.io/smart-data/api/plugins/</loc>
-         <lastmod>2026-07-20</lastmod>
+         <lastmod>2026-08-23</lastmod>
     </url>
     <url>
          <loc>https://strondata.github.io/smart-data/plans/aptdata-studio/</loc>
-         <lastmod>2026-07-20</lastmod>
+         <lastmod>2026-08-23</lastmod>
     </url>
     <url>
          <loc>https://strondata.github.io/smart-data/plans/cli-tdd/</loc>
-         <lastmod>2026-07-20</lastmod>
+         <lastmod>2026-08-23</lastmod>
     </url>
     <url>
          <loc>https://strondata.github.io/smart-data/plans/observability/</loc>
-         <lastmod>2026-07-20</lastmod>
+         <lastmod>2026-08-23</lastmod>
     </url>
     <url>
          <loc>https://strondata.github.io/smart-data/plans/sync-architecture/</loc>
-         <lastmod>2026-07-20</lastmod>
+         <lastmod>2026-08-23</lastmod>
     </url>
     <url>
          <loc>https://strondata.github.io/smart-data/plans/telegram-orchestration/</loc>
-         <lastmod>2026-07-20</lastmod>
+         <lastmod>2026-08-23</lastmod>
     </url>
     <url>
          <loc>https://strondata.github.io/smart-data/prompts/docs-agent/</loc>
-         <lastmod>2026-07-20</lastmod>
+         <lastmod>2026-08-23</lastmod>
     </url>
 </urlset>
