@@ -179,6 +179,20 @@ def monitor(
     aptdata monitor
     aptdata monitor --refresh 0.5
     """
+    if not sys.stdin.isatty() or not sys.stdout.isatty():
+        _emit(
+            {
+                "event": "monitor.error",
+                "error": (
+                    "monitor requires an interactive terminal (TTY) on stdin "
+                    "and stdout; run it from a real terminal, not a pipe or "
+                    "non-interactive shell."
+                ),
+            },
+            error=True,
+        )
+        raise typer.Exit(code=1)
+
     from aptdata.tui.monitor import MonitorApp  # noqa: PLC0415
 
     app_instance = MonitorApp(refresh_interval=refresh)
